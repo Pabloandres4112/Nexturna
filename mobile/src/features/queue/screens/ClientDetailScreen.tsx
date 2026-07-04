@@ -9,14 +9,11 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { AppStackParamList } from '../types';
+import type { AppStackParamList } from '@app/navigation/types';
 import { useQueue } from '../hooks/useQueue';
-import Badge from '../components/Badge';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants';
-import { formatDate, formatTime } from '../utils/formatters';
+import { Badge, Button, Card, LoadingSpinner } from '@ui-kit';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '@shared/constants';
+import { formatDate, formatTime } from '@shared/utils/formatters';
 
 type DetailNavProp = NativeStackNavigationProp<AppStackParamList, 'ClientDetail'>;
 type DetailRouteProp = RouteProp<AppStackParamList, 'ClientDetail'>;

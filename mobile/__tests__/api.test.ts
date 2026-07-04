@@ -2,8 +2,8 @@
  * Tests for the API module (queueApi)
  */
 
-import { queueApi } from '../src/api';
-import apiClient from '../src/api';
+import { queueApi } from '../src/features/queue/api/queue.api';
+import apiClient from '../src/lib/httpClient';
 
 // Mock the axios instance
 jest.mock('axios', () => {

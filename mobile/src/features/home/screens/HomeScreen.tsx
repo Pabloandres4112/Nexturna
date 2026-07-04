@@ -11,14 +11,12 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '../types';
-import { useAuth } from '../hooks/useAuth';
-import { useQueue } from '../hooks/useQueue';
-import { useSettings } from '../hooks/useSettings';
-import Card from '../components/Card';
-import LoadingSpinner from '../components/LoadingSpinner';
-import NexturnaLogo from '../components/NexturnaLogo';
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '../constants';
+import type { AppStackParamList } from '@app/navigation/types';
+import { useAuth } from '@features/auth';
+import { useQueue } from '@features/queue';
+import { useSettings } from '@features/settings';
+import { Card, LoadingSpinner, NexturnaLogo } from '@ui-kit';
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 type HomeNavProp = NativeStackNavigationProp<AppStackParamList, 'Home'>;
 

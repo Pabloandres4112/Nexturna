@@ -12,11 +12,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useQueue } from '../hooks/useQueue';
-import { useSettings } from '../hooks/useSettings';
-import { validateName, validatePhoneNumber } from '../utils/validators';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants';
+import { useSettings } from '@features/settings';
+import { validateName, validatePhoneNumber } from '@shared/utils/validators';
+import { Input, Button } from '@ui-kit';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 interface FormErrors {
   clientName: string | null;

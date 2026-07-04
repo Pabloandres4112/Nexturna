@@ -4,10 +4,10 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import {useQueue} from '../src/hooks/useQueue';
-import * as apiModule from '../src/api';
+import {useQueue} from '../src/features/queue/hooks/useQueue';
+import * as apiModule from '../src/features/queue/api/queue.api';
 
-jest.mock('../src/api', () => ({
+jest.mock('../src/features/queue/api/queue.api', () => ({
   queueApi: {
     getQueue: jest.fn(),
     addToQueue: jest.fn(),
@@ -16,6 +16,10 @@ jest.mock('../src/api', () => ({
     removeFromQueue: jest.fn(),
     updateQueueItem: jest.fn(),
   },
+}));
+
+jest.mock('@lib/httpClient', () => ({
+  getApiErrorMessage: jest.fn((_error: unknown, fallback: string) => fallback),
 }));
 
 const mockQueue = [

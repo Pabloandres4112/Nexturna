@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from 'react-native';
-import { COLORS, RADIUS, SHADOW, SPACING } from '../constants';
+import { COLORS, RADIUS, SHADOW, SPACING } from '@shared/constants';
 
 interface CardProps extends TouchableOpacityProps {
   children: React.ReactNode;

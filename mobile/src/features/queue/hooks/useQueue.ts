@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { QueueItem, QueueResponse, CreateQueueDto } from '../types';
-import { getApiErrorMessage, queueApi } from '../api';
+import { queueApi } from '../api/queue.api';
+import { getApiErrorMessage } from '@lib/httpClient';
 
 const parseApiError = (error: unknown, fallback: string): string => {
   if (typeof getApiErrorMessage === 'function') {

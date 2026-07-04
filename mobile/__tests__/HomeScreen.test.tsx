@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import HomeScreen from '../src/screens/HomeScreen';
+import HomeScreen from '../src/features/home/screens/HomeScreen';
 import {getAllText} from '../src/testUtils';
 
 const mockNavigate = jest.fn();
@@ -18,7 +18,7 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({params: {}}),
 }));
 
-jest.mock('../src/hooks/useAuth', () => ({
+jest.mock('@features/auth', () => ({
   useAuth: jest.fn(() => ({
     user: {
       id: '1',
@@ -41,7 +41,7 @@ jest.mock('../src/hooks/useAuth', () => ({
   })),
 }));
 
-jest.mock('../src/hooks/useQueue', () => ({
+jest.mock('@features/queue', () => ({
   useQueue: jest.fn(() => ({
     queue: [],
     activeQueue: [],
@@ -60,7 +60,7 @@ jest.mock('../src/hooks/useQueue', () => ({
   })),
 }));
 
-jest.mock('../src/hooks/useSettings', () => ({
+jest.mock('@features/settings', () => ({
   useSettings: jest.fn(() => ({
     settings: {
       averageServiceTime: 30,

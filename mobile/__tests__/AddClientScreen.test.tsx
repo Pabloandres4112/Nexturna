@@ -5,7 +5,7 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import {Alert} from 'react-native';
-import AddClientScreen from '../src/screens/AddClientScreen';
+import AddClientScreen from '../src/features/queue/screens/AddClientScreen';
 import {getAllText, findButtonByText} from '../src/testUtils';
 
 jest.mock('@react-navigation/native', () => ({
@@ -17,7 +17,7 @@ jest.mock('@react-navigation/native', () => ({
 
 const mockAddToQueue = jest.fn();
 
-jest.mock('../src/hooks/useQueue', () => ({
+jest.mock('../src/features/queue/hooks/useQueue', () => ({
   useQueue: jest.fn(() => ({
     queue: [],
     activeQueue: [],
@@ -36,7 +36,7 @@ jest.mock('../src/hooks/useQueue', () => ({
   })),
 }));
 
-jest.mock('../src/hooks/useSettings', () => ({
+jest.mock('@features/settings', () => ({
   useSettings: jest.fn(() => ({
     settings: {
       averageServiceTime: 30,
@@ -52,7 +52,7 @@ jest.mock('../src/hooks/useSettings', () => ({
   })),
 }));
 
-jest.mock('../src/hooks/useAuth', () => ({
+jest.mock('../src/features/auth/hooks/useAuth', () => ({
   useAuth: jest.fn(() => ({
     user: {
       id: '1',

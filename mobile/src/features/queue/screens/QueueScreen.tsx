@@ -11,14 +11,11 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList, QueueItem } from '../types';
+import type { AppStackParamList } from '@app/navigation/types';
+import type { QueueItem } from '../types';
 import { useQueue } from '../hooks/useQueue';
-import Badge from '../components/Badge';
-import Button from '../components/Button';
-import EmptyState from '../components/EmptyState';
-import ErrorMessage from '../components/ErrorMessage';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '../constants';
+import { Badge, Button, EmptyState, ErrorMessage, LoadingSpinner } from '@ui-kit';
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 type QueueNavProp = NativeStackNavigationProp<AppStackParamList, 'Queue'>;
 

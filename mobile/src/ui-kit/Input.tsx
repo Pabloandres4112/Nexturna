@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 interface InputProps extends TextInputProps {
   label?: string;

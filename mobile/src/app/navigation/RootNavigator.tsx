@@ -2,35 +2,16 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { AuthStackParamList, AppStackParamList } from '../types';
-import { useAuth } from '../hooks/useAuth';
-import { COLORS } from '../constants';
+import { useAuth, AuthNavigator } from '@features/auth';
+import { HomeScreen } from '@features/home';
+import { QueueScreen, AddClientScreen, ClientDetailScreen } from '@features/queue';
+import { SettingsScreen } from '@features/settings';
+import { LoadingSpinner } from '@ui-kit';
+import { COLORS } from '@shared/constants';
 
-// Screens — Auth
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import type { AppStackParamList } from './types';
 
-// Screens — App
-import HomeScreen from '../screens/HomeScreen';
-import QueueScreen from '../screens/QueueScreen';
-import AddClientScreen from '../screens/AddClientScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import ClientDetailScreen from '../screens/ClientDetailScreen';
-
-import LoadingSpinner from '../components/LoadingSpinner';
-
-const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
-
-const AuthNavigator: React.FC = () => (
-  <AuthStack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}>
-    <AuthStack.Screen name="Login" component={LoginScreen} />
-    <AuthStack.Screen name="Register" component={RegisterScreen} />
-  </AuthStack.Navigator>
-);
 
 const AppNavigator: React.FC = () => (
   <AppStack.Navigator

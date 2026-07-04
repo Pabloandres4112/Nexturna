@@ -5,14 +5,14 @@
 
 import React from 'react';
 import 'react-native-gesture-handler';
-import { AuthProvider } from './src/context/AuthContext';
-import RootNavigator from './src/navigation/AppNavigator';
+import AppProviders from './src/app/providers/AppProviders';
+import RootNavigator from './src/app/navigation/RootNavigator';
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
+    <AppProviders>
       <RootNavigator />
-    </AuthProvider>
+    </AppProviders>
   );
 };
 

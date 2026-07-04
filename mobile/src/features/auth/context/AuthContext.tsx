@@ -7,8 +7,8 @@ import React, {
   useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi } from '../api';
-import { STORAGE_KEYS } from '../constants';
+import { authApi } from '../api/auth.api';
+import { STORAGE_KEYS } from '@shared/constants';
 import { AuthUser, LoginDto, RegisterDto } from '../types';
 
 // ─── Context Shape ────────────────────────────────────────────────────────────

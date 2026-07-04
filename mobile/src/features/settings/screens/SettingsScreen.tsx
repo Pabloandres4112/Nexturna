@@ -10,14 +10,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@features/auth';
 import { useSettings } from '../hooks/useSettings';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { COLORS, SPACING, TYPOGRAPHY } from '../constants';
-import { validatePositiveNumber } from '../utils/validators';
+import { Input, Button, Card, LoadingSpinner } from '@ui-kit';
+import { COLORS, SPACING, TYPOGRAPHY } from '@shared/constants';
+import { validatePositiveNumber } from '@shared/utils/validators';
 
 const SettingsScreen: React.FC = () => {
   const { user, logout } = useAuth();

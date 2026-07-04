@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usersApi } from '../api';
-import { STORAGE_KEYS } from '../constants';
+import { usersApi } from '../api/users.api';
+import { STORAGE_KEYS } from '@shared/constants';
 import { UserSettings, UpdateUserDto } from '../types';
-import { useAuth } from './useAuth';
+import { useAuth } from '@features/auth';
 
 const DEFAULT_SETTINGS: UserSettings = {
   averageServiceTime: 30,

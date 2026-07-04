@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants';
-import { QueueStatus } from '../types';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '@shared/constants';
 
-type BadgeVariant = QueueStatus | 'priority' | 'info' | 'neutral';
+type BadgeVariant = 'waiting' | 'in-progress' | 'completed' | 'noShow' | 'priority' | 'info' | 'neutral';
 
 interface BadgeProps {
   label: string;

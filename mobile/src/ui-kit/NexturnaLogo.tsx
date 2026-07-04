@@ -3,7 +3,7 @@ import { Image, ImageStyle } from 'react-native';
 
 // Real brand assets committed under mobile/assets/
 const isotypeSrc = require('../../assets/Isotipo.Nexturna.png') as number;
-const logoSrc = require('../../assets/Logo.Nexturna.png') as number;
+const logoSrc = require('../../assets/nexturna_logo.png') as number;
 
 interface NexturnaLogoProps {
   /** Height of the image in dp. Default 64. */
@@ -25,7 +25,7 @@ interface NexturnaLogoProps {
  *
  * Displays the official PNG brand assets:
  *   - `showWordmark=false` (default) → Isotipo.Nexturna.png (isotype/icon only, 1:1)
- *   - `showWordmark=true`            → Logo.Nexturna.png   (icon + wordmark, 3:2)
+ *   - `showWordmark=true`            → nexturna_logo.png (icon lockup, 1:1)
  */
 const NexturnaLogo: React.FC<NexturnaLogoProps> = ({
   size = 64,
@@ -33,8 +33,8 @@ const NexturnaLogo: React.FC<NexturnaLogoProps> = ({
   mono: _mono = false,
 }) => {
   if (showWordmark) {
-    // Logo.Nexturna.png is 1536×1024 → aspect ratio 3:2
-    const logoStyle: ImageStyle = { width: Math.round(size * 1.5), height: size };
+    // nexturna_logo.png is 200x200 -> aspect ratio 1:1
+    const logoStyle: ImageStyle = { width: size, height: size };
     return <Image source={logoSrc} style={logoStyle} resizeMode="contain" />;
   }
 

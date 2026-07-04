@@ -16,11 +16,9 @@ import {
   validatePassword,
   validatePasswordConfirm,
   validatePhoneNumber,
-} from '../utils/validators';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import NexturnaLogo from '../components/NexturnaLogo';
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '../constants';
+} from '@shared/utils/validators';
+import { Input, Button, NexturnaLogo } from '@ui-kit';
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 

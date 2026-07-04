@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import QueueScreen from '../src/screens/QueueScreen';
+import QueueScreen from '../src/features/queue/screens/QueueScreen';
 import {getAllText} from '../src/testUtils';
 
 jest.mock('@react-navigation/native', () => ({
@@ -44,7 +44,7 @@ const mockQueueData = [
   },
 ];
 
-jest.mock('../src/hooks/useQueue', () => ({
+jest.mock('../src/features/queue/hooks/useQueue', () => ({
   useQueue: jest.fn(() => ({
     queue: mockQueueData,
     activeQueue: mockQueueData,

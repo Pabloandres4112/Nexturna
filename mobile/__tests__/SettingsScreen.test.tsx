@@ -4,10 +4,10 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import SettingsScreen from '../src/screens/SettingsScreen';
+import SettingsScreen from '../src/features/settings/screens/SettingsScreen';
 import {getAllText} from '../src/testUtils';
 
-jest.mock('../src/hooks/useAuth', () => ({
+jest.mock('@features/auth', () => ({
   useAuth: jest.fn(() => ({
     user: {
       id: '1',
@@ -30,7 +30,7 @@ jest.mock('../src/hooks/useAuth', () => ({
   })),
 }));
 
-jest.mock('../src/hooks/useSettings', () => ({
+jest.mock('../src/features/settings/hooks/useSettings', () => ({
   useSettings: jest.fn(() => ({
     settings: {
       averageServiceTime: 30,

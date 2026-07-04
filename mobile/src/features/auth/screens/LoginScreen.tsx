@@ -11,11 +11,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { AuthStackParamList } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { validatePassword, validateRequired } from '../utils/validators';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import NexturnaLogo from '../components/NexturnaLogo';
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '../constants';
+import { validatePassword, validateRequired } from '@shared/utils/validators';
+import { Input, Button, NexturnaLogo } from '@ui-kit';
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
