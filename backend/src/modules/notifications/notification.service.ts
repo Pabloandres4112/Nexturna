@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SendNotificationDto } from './notif.dto';
+import { SendNotificationDto } from './notification.dto';
 
 @Injectable()
 export class NotificationService {
@@ -16,6 +16,15 @@ export class NotificationService {
     return {
       success: true,
       message: 'Actualización de cola enviada',
+    };
+  }
+
+  async sendPushNotification(userId: string, _title: string, _body: string, _data?: any) {
+    // TODO: Implementar integración con servicio de push notifications
+    console.log(`Enviando notificación push a usuario ${userId}`);
+    return {
+      success: true,
+      notificationId: 'notif-id',
     };
   }
 }

@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QueueEntity, QueueStatus as EntityQueueStatus } from './queue.entity';
-import { UserEntity, UserSettings } from '../users/user.entity';
+import { UserEntity, UserSettings } from '@identity/users/user.entity';
 import { CreateQueueDto, UpdateQueueDto } from './queue.dto';
 
 const DEFAULT_SERVICE_TIME_MINUTES = 30;

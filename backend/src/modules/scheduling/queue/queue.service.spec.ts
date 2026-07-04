@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { QueueEntity, QueueStatus as EntityQueueStatus } from './queue.entity';
-import { UserEntity } from '../users/user.entity';
+import { UserEntity } from '@identity/users/user.entity';
 import { CreateQueueDto, UpdateQueueDto, QueueStatus } from './queue.dto';
 
 const BUSINESS_ID = 'biz-uuid-1234';

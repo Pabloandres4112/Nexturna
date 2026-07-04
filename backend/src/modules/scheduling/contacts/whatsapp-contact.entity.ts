@@ -9,7 +9,7 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { UserEntity } from '../users/user.entity';
+import { UserEntity } from '@identity/users/user.entity';
 import { QueueEntity } from '../queue/queue.entity';
 
 @Entity('whatsapp_contacts')

@@ -18,10 +18,10 @@ import {
   MessageLogResponseDto,
   GetMessageLogsQueryDto,
 } from './message-log.dto';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
-import { UserRole } from '../users/user-role.enum';
+import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
+import { RolesGuard } from '@shared/guards/roles.guard';
+import { Roles } from '@shared/decorators/roles.decorator';
+import { UserRole } from '@identity/users/user-role.enum';
 
 @Controller('message-logs')
 export class MessageLogController {

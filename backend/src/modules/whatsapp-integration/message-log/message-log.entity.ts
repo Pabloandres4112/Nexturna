@@ -8,8 +8,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { UserEntity } from '../users/user.entity';
-import { QueueEntity } from '../queue/queue.entity';
+import { UserEntity } from '@identity/users/user.entity';
+import { QueueEntity } from '@scheduling/queue/queue.entity';
 
 export enum MessageDirection {
   SENT = 'SENT',

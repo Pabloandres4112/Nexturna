@@ -8,8 +8,8 @@ import {
   Index,
 } from 'typeorm';
 import { UserRole } from './user-role.enum';
-import { WhatsAppContactEntity } from '../whatsapp-contacts/whatsapp-contact.entity';
-import { QueueEntity } from '../queue/queue.entity';
+import { WhatsAppContactEntity } from '@scheduling/contacts/whatsapp-contact.entity';
+import { QueueEntity } from '@scheduling/queue/queue.entity';
 
 /**
  * Configuracion operativa por negocio.

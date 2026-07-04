@@ -1,22 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { QueueController } from './modules/queue/queue.controller';
-import { QueueService } from './modules/queue/queue.service';
-import { UserController } from './modules/users/user.controller';
-import { UserService } from './modules/users/user.service';
-import { NotificationController } from './modules/notifications/notif.controller';
-import { NotificationService } from './modules/notifications/notif.service';
-import { WhatsAppService } from './services/whatsapp.service';
-import { NotificationCoreService } from './services/notification.service';
-import { AuthModule } from './modules/auth/auth.module';
-import { MessageLogModule } from './modules/message-log/message-log.module';
-import { WebhookModule } from './modules/webhook/webhook.module';
-import { UserEntity } from './modules/users/user.entity';
-import { QueueEntity } from './modules/queue/queue.entity';
-import { MessageLogEntity } from './modules/message-log/message-log.entity';
-import { RolesGuard } from './common/guards/roles.guard';
+import { typeOrmConfigFactory } from './infrastructure/database/typeorm.config';
+import { IdentityModule } from './modules/identity/identity.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { WhatsappIntegrationModule } from './modules/whatsapp-integration/whatsapp-integration.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,39 +13,14 @@ import { RolesGuard } from './common/guards/roles.guard';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    AuthModule,
-    MessageLogModule,
-    WebhookModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService): Promise<TypeOrmModuleOptions> => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST') || 'localhost',
-        port: configService.get<number>('DB_PORT') || 5432,
-        username: configService.get<string>('DB_USERNAME') || 'turnoya',
-        password: configService.get<string>('DB_PASSWORD') || 'turnoya',
-        database: configService.get<string>('DB_NAME') || 'turnoya_db',
-        entities: ['dist/**/*.entity.js'],
-        migrations: ['dist/migrations/*.js'],
-        synchronize:
-          configService.get<string>('DB_SYNC') === 'true' ||
-          configService.get<string>('NODE_ENV') === 'development',
-        logging: configService.get<string>('NODE_ENV') === 'development',
-        retryAttempts: 20,
-        retryDelay: 5000,
-        connectTimeoutMS: 10000,
-      }),
+      useFactory: typeOrmConfigFactory,
     }),
-    TypeOrmModule.forFeature([UserEntity, QueueEntity, MessageLogEntity]),
-  ],
-  controllers: [QueueController, UserController, NotificationController],
-  providers: [
-    QueueService,
-    UserService,
-    NotificationService,
-    WhatsAppService,
-    NotificationCoreService,
-    RolesGuard,
+    IdentityModule,
+    SchedulingModule,
+    WhatsappIntegrationModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

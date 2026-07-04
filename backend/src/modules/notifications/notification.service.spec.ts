@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationService } from './notif.service';
-import { SendNotificationDto, NotificationType } from './notif.dto';
+import { NotificationService } from './notification.service';
+import { SendNotificationDto, NotificationType } from './notification.dto';
 
 describe('NotificationService', () => {
   let service: NotificationService;

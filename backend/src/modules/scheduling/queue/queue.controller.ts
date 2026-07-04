@@ -15,8 +15,8 @@ import {
 import { Request } from 'express';
 import { QueueService } from './queue.service';
 import { CreateQueueDto, UpdateQueueDto } from './queue.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { UserEntity } from '../users/user.entity';
+import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
+import { UserEntity } from '@identity/users/user.entity';
 
 interface AuthRequest extends Request {
   user: UserEntity;

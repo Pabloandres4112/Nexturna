@@ -26,8 +26,11 @@
     "declarationMap": true,
     "paths": {
       "@modules/*": ["src/modules/*"],
-      "@services/*": ["src/services/*"],
-      "@common/*": ["src/common/*"]
+      "@shared/*": ["src/shared/*"],
+      "@identity/*": ["src/modules/identity/*"],
+      "@scheduling/*": ["src/modules/scheduling/*"],
+      "@whatsapp/*": ["src/modules/whatsapp-integration/*"],
+      "@infrastructure/*": ["src/infrastructure/*"]
     }
   },
   "include": ["src/**/*"],

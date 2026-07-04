@@ -17,9 +17,9 @@ import {
   ExcludedContactsResponseDto,
 } from './user.dto';
 import { User, CreateUserResponse, UpdateUserResponse, UserSettings } from './user.types';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
+import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
+import { RolesGuard } from '@shared/guards/roles.guard';
+import { Roles } from '@shared/decorators/roles.decorator';
 import { UserRole } from './user-role.enum';
 
 @Controller('users')

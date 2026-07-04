@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QueueController } from './queue.controller';
 import { QueueService } from './queue.service';
 import { CreateQueueDto, UpdateQueueDto, QueueStatus } from './queue.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
 
 const BUSINESS_ID = 'biz-uuid-1234';
 const mockReq = { user: { id: BUSINESS_ID } } as any;

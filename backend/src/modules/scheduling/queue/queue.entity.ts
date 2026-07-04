@@ -8,8 +8,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { UserEntity } from '../users/user.entity';
-import { WhatsAppContactEntity } from '../whatsapp-contacts/whatsapp-contact.entity';
+import { UserEntity } from '@identity/users/user.entity';
+import { WhatsAppContactEntity } from '../contacts/whatsapp-contact.entity';
 
 export enum QueueStatus {
   WAITING = 'waiting',

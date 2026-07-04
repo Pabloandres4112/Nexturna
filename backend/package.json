@@ -78,8 +78,11 @@
     },
     "moduleNameMapper": {
       "^@modules/(.*)$": "<rootDir>/modules/$1",
-      "^@services/(.*)$": "<rootDir>/services/$1",
-      "^@common/(.*)$": "<rootDir>/common/$1"
+      "^@shared/(.*)$": "<rootDir>/shared/$1",
+      "^@identity/(.*)$": "<rootDir>/modules/identity/$1",
+      "^@scheduling/(.*)$": "<rootDir>/modules/scheduling/$1",
+      "^@whatsapp/(.*)$": "<rootDir>/modules/whatsapp-integration/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

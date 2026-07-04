@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRole } from '../../modules/users/user-role.enum';
+import { UserRole } from '@identity/users/user-role.enum';
 
 interface RequestUser {
   role?: UserRole | string;
