@@ -22,7 +22,7 @@ import type { StringValue } from 'ms';
         const expiresIn = (config.get<string>('JWT_EXPIRES_IN') as StringValue | undefined) ?? '1d';
 
         return {
-          secret: config.get<string>('JWT_SECRET') || 'change_me',
+          secret: config.getOrThrow<string>('JWT_SECRET'),
           signOptions: { expiresIn },
         };
       },

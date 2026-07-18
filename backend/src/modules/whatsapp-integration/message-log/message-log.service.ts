@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MessageLogEntity, MessageStatus } from './message-log.entity';
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class MessageLogService {
+  private readonly logger = new Logger(MessageLogService.name);
+
   constructor(
     @InjectRepository(MessageLogEntity)
     private readonly messageLogRepository: Repository<MessageLogEntity>,
@@ -178,7 +180,12 @@ export class MessageLogService {
       .andWhere('createdAt < :staleSince', { staleSince })
       .execute();
 
-    return result.affected ?? 0;
+    const affected = result.affected ?? 0;
+    if (affected > 0) {
+      this.logger.warn(`${affected} mensaje(s) marcados como FAILED por estar PENDING > ${minutesThreshold}min`);
+    }
+
+    return affected;
   }
 
   private entityToDto(entity: MessageLogEntity): MessageLogResponseDto {

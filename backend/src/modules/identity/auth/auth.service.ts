@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -8,7 +8,7 @@ import { UserEntity } from '../users/user.entity';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { UserRole } from '../users/user-role.enum';
 import { LegalConsentEntity } from './legal-consent.entity';
-import { UserSettings } from '../users/user.entity';
+import { normalizeUserSettings } from '../users/user-settings.util';
 
 interface JwtPayload {
   sub: string;
@@ -26,6 +26,8 @@ interface LegalEvidenceMetadata {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
@@ -34,40 +36,6 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
-
-  private defaultSettings(): UserSettings {
-    return {
-      averageServiceTime: 30,
-      automationEnabled: true,
-      excludedContacts: [],
-      maxDaysAhead: 7,
-      queuePaused: false,
-    };
-  }
-
-  private normalizeSettings(settings: UserEntity['settings'] | null | undefined): UserSettings {
-    const defaults = this.defaultSettings();
-
-    return {
-      averageServiceTime:
-        typeof settings?.averageServiceTime === 'number' && settings.averageServiceTime > 0
-          ? settings.averageServiceTime
-          : defaults.averageServiceTime,
-      automationEnabled:
-        typeof settings?.automationEnabled === 'boolean'
-          ? settings.automationEnabled
-          : defaults.automationEnabled,
-      excludedContacts: Array.isArray(settings?.excludedContacts)
-        ? settings.excludedContacts.filter((value): value is string => typeof value === 'string')
-        : defaults.excludedContacts,
-      maxDaysAhead:
-        typeof settings?.maxDaysAhead === 'number' && settings.maxDaysAhead >= 0
-          ? settings.maxDaysAhead
-          : defaults.maxDaysAhead,
-      queuePaused:
-        typeof settings?.queuePaused === 'boolean' ? settings.queuePaused : defaults.queuePaused,
-    };
-  }
 
   private async ensureSinglePlatformAdmin(user: UserEntity): Promise<void> {
     if (user.role !== UserRole.PLATFORM_ADMIN) {
@@ -93,6 +61,7 @@ export class AuthService {
     });
 
     if (existing) {
+      this.logger.warn(`Intento de registro duplicado para ${dto.whatsappNumber}`);
       throw new ConflictException('El usuario ya existe');
     }
 
@@ -129,6 +98,7 @@ export class AuthService {
     await this.legalConsentRepository.save(legalConsent);
 
     const accessToken = await this.signToken(saved);
+    this.logger.log(`Negocio registrado: ${saved.id} (${saved.businessName})`);
 
     return {
       accessToken,
@@ -153,6 +123,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
+      this.logger.warn(`Login fallido: identificador no encontrado (${dto.identifier})`);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -163,6 +134,7 @@ export class AuthService {
     const isValid = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!isValid) {
+      this.logger.warn(`Login fallido: contraseña invalida para ${user.id}`);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -206,7 +178,7 @@ export class AuthService {
       businessName: user.businessName,
       whatsappNumber: user.whatsappNumber,
       email: user.email ?? null,
-      settings: this.normalizeSettings(user.settings),
+      settings: normalizeUserSettings(user.settings),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

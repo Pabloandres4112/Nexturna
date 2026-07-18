@@ -2,25 +2,42 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { QueueEntity, QueueStatus as EntityQueueStatus } from './queue.entity';
-import { UserEntity, UserSettings } from '@identity/users/user.entity';
-import { CreateQueueDto, UpdateQueueDto } from './queue.dto';
-
-const DEFAULT_SERVICE_TIME_MINUTES = 30;
-const DEFAULT_MAX_DAYS_AHEAD = 0;
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { QueueEntity, QueueStatus } from './queue.entity';
+import { UserEntity } from '@identity/users/user.entity';
+import { normalizeUserSettings } from '@identity/users/user-settings.util';
+import { CreateQueueDto, QueueItem, UpdateQueueDto } from './queue.dto';
 
 @Injectable()
 export class QueueService {
+  private readonly logger = new Logger(QueueService.name);
+
   constructor(
     @InjectRepository(QueueEntity)
     private readonly queueRepo: Repository<QueueEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
+
+  private toQueueItem(entity: QueueEntity): QueueItem {
+    return {
+      id: entity.id,
+      clientName: entity.clientName,
+      phoneNumber: entity.phoneNumber,
+      position: entity.position,
+      status: entity.status,
+      estimatedTimeMinutes: entity.estimatedTimeMinutes ?? 0,
+      priority: entity.priority,
+      createdAt: entity.createdAt,
+      queueDate: entity.queueDate,
+    };
+  }
 
   private todayDateString(): string {
     const now = new Date();
@@ -38,41 +55,22 @@ export class QueueService {
     return parsed.toISOString().slice(0, 10);
   }
 
-  private activeStatuses(): EntityQueueStatus[] {
-    return [EntityQueueStatus.WAITING, EntityQueueStatus.IN_PROGRESS];
+  private activeStatuses(): QueueStatus[] {
+    return [QueueStatus.WAITING, QueueStatus.IN_PROGRESS];
   }
 
-  private withDefaultSettings(settings: UserSettings | null): UserSettings {
-    return {
-      averageServiceTime:
-        typeof settings?.averageServiceTime === 'number' && settings.averageServiceTime > 0
-          ? settings.averageServiceTime
-          : DEFAULT_SERVICE_TIME_MINUTES,
-      automationEnabled:
-        typeof settings?.automationEnabled === 'boolean' ? settings.automationEnabled : false,
-      excludedContacts: Array.isArray(settings?.excludedContacts)
-        ? settings.excludedContacts.filter((value): value is string => typeof value === 'string')
-        : [],
-      maxDaysAhead:
-        typeof settings?.maxDaysAhead === 'number' && settings.maxDaysAhead >= 0
-          ? settings.maxDaysAhead
-          : DEFAULT_MAX_DAYS_AHEAD,
-      queuePaused: typeof settings?.queuePaused === 'boolean' ? settings.queuePaused : false,
-    };
-  }
-
-  private async getBusinessAndSettings(businessId: string): Promise<{
-    business: UserEntity;
-    settings: UserSettings;
-  }> {
-    const business = await this.userRepo.findOne({ where: { id: businessId } });
+  private async loadBusinessAndSettings(
+    userRepo: Repository<UserEntity>,
+    businessId: string,
+  ): Promise<{ business: UserEntity; settings: ReturnType<typeof normalizeUserSettings> }> {
+    const business = await userRepo.findOne({ where: { id: businessId } });
     if (!business) {
       throw new NotFoundException('Negocio no encontrado');
     }
 
     return {
       business,
-      settings: this.withDefaultSettings(business.settings),
+      settings: normalizeUserSettings(business.settings),
     };
   }
 
@@ -82,8 +80,12 @@ export class QueueService {
     return Math.floor((b - a) / (24 * 60 * 60 * 1000));
   }
 
-  private async reindexActiveQueueForDate(businessId: string, queueDate: string): Promise<void> {
-    const activeItems = await this.queueRepo
+  private async reindexActiveQueueForDate(
+    queueRepo: Repository<QueueEntity>,
+    businessId: string,
+    queueDate: string,
+  ): Promise<void> {
+    const activeItems = await queueRepo
       .createQueryBuilder('q')
       .where('q.businessId = :businessId', { businessId })
       .andWhere('q.queueDate = :queueDate::date', { queueDate })
@@ -92,10 +94,9 @@ export class QueueService {
       .addOrderBy('q.createdAt', 'ASC')
       .getMany();
 
-    const inProgress =
-      activeItems.find((item) => item.status === EntityQueueStatus.IN_PROGRESS) ?? null;
+    const inProgress = activeItems.find((item) => item.status === QueueStatus.IN_PROGRESS) ?? null;
     const waiting = activeItems
-      .filter((item) => item.status === EntityQueueStatus.WAITING)
+      .filter((item) => item.status === QueueStatus.WAITING)
       .sort((a, b) => {
         if (a.priority !== b.priority) {
           return a.priority ? -1 : 1;
@@ -110,14 +111,22 @@ export class QueueService {
     }
 
     if (ordered.length > 0) {
-      await this.queueRepo.save(ordered);
+      await queueRepo.save(ordered);
     }
   }
 
-  private async recalculateEstimatedTimes(businessId: string, queueDate: string): Promise<void> {
-    const { settings } = await this.getBusinessAndSettings(businessId);
+  private async recalculateEstimatedTimes(
+    manager: EntityManager,
+    businessId: string,
+    queueDate: string,
+  ): Promise<void> {
+    const queueRepo = manager.getRepository(QueueEntity);
+    const { settings } = await this.loadBusinessAndSettings(
+      manager.getRepository(UserEntity),
+      businessId,
+    );
 
-    const activeItems = await this.queueRepo
+    const activeItems = await queueRepo
       .createQueryBuilder('q')
       .where('q.businessId = :businessId', { businessId })
       .andWhere('q.queueDate = :queueDate::date', { queueDate })
@@ -125,26 +134,27 @@ export class QueueService {
       .orderBy('q.position', 'ASC')
       .getMany();
 
-    const waitingItems = activeItems.filter((item) => item.status === EntityQueueStatus.WAITING);
+    const waitingItems = activeItems.filter((item) => item.status === QueueStatus.WAITING);
 
     for (const item of waitingItems) {
       item.estimatedTimeMinutes = settings.averageServiceTime * (item.position - 1);
     }
 
     if (waitingItems.length > 0) {
-      await this.queueRepo.save(waitingItems);
+      await queueRepo.save(waitingItems);
     }
   }
 
   private async advanceNextWaiting(
+    queueRepo: Repository<QueueEntity>,
     businessId: string,
     queueDate: string,
   ): Promise<QueueEntity | null> {
-    const next = await this.queueRepo
+    const next = await queueRepo
       .createQueryBuilder('q')
       .where('q.businessId = :businessId', { businessId })
       .andWhere('q.queueDate = :queueDate::date', { queueDate })
-      .andWhere('q.status = :status', { status: EntityQueueStatus.WAITING })
+      .andWhere('q.status = :status', { status: QueueStatus.WAITING })
       .orderBy('q.priority', 'DESC')
       .addOrderBy('q.position', 'ASC')
       .getOne();
@@ -153,9 +163,28 @@ export class QueueService {
       return null;
     }
 
-    next.status = EntityQueueStatus.IN_PROGRESS;
+    next.status = QueueStatus.IN_PROGRESS;
     next.estimatedTimeMinutes = 0;
-    return this.queueRepo.save(next);
+    return queueRepo.save(next);
+  }
+
+  /**
+   * Reindexa y recalcula tiempos estimados dentro de la misma transaccion
+   * que la mutacion que los origino. Centralizado aca para no repetir el
+   * mismo par de llamadas en cada metodo mutador.
+   */
+  private async settleQueueForDate(
+    manager: EntityManager,
+    businessId: string,
+    queueDate: string,
+  ): Promise<void> {
+    const queueRepo = manager.getRepository(QueueEntity);
+    await this.reindexActiveQueueForDate(queueRepo, businessId, queueDate);
+    await this.recalculateEstimatedTimes(manager, businessId, queueDate);
+  }
+
+  private async runInTransaction<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
+    return this.dataSource.transaction(work);
   }
 
   async getQueue(businessId: string) {
@@ -174,214 +203,243 @@ export class QueueService {
       .addOrderBy('q.position', 'ASC')
       .getMany();
 
-    const currentItem = items.find((i) => i.status === EntityQueueStatus.IN_PROGRESS);
+    const currentItem = items.find((i) => i.status === QueueStatus.IN_PROGRESS);
 
     return {
-      queue: items,
+      queue: items.map((item) => this.toQueueItem(item)),
       total: items.length,
       currentPosition: currentItem?.position ?? 0,
       message: 'Cola obtenida correctamente',
     };
   }
 
+  /**
+   * Alta a la cola. Corre dentro de una transaccion con SELECT ... FOR UPDATE
+   * sobre la ultima posicion activa: dos altas concurrentes para el mismo
+   * negocio ya no pueden calcular la misma posicion ni saltarse la
+   * verificacion de telefono duplicado (antes eran 3+ queries sueltas).
+   */
   async addToQueue(businessId: string, createQueueDto: CreateQueueDto) {
-    const today = this.todayDateString();
-    const queueDate = this.normalizeDate(createQueueDto.queueDate ?? today);
-    const { settings } = await this.getBusinessAndSettings(businessId);
-
-    if (settings.queuePaused) {
-      throw new BadRequestException('La cola esta en pausa y no acepta nuevos turnos');
-    }
-
-    const daysAhead = this.daysBetweenUtc(today, queueDate);
-    if (daysAhead < 0) {
-      throw new BadRequestException('No se pueden crear turnos en fechas pasadas');
-    }
-    if (daysAhead > settings.maxDaysAhead) {
-      throw new BadRequestException(
-        `La fecha supera el maximo permitido de ${settings.maxDaysAhead} dia(s) de anticipacion`,
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const today = this.todayDateString();
+      const queueDate = this.normalizeDate(createQueueDto.queueDate ?? today);
+      const { settings } = await this.loadBusinessAndSettings(
+        manager.getRepository(UserEntity),
+        businessId,
       );
-    }
 
-    const duplicatedCount = await this.queueRepo
-      .createQueryBuilder('q')
-      .where('q.businessId = :businessId', { businessId })
-      .andWhere('q.queueDate = :queueDate::date', { queueDate })
-      .andWhere('q.phoneNumber = :phoneNumber', { phoneNumber: createQueueDto.phoneNumber })
-      .getCount();
+      if (settings.queuePaused) {
+        throw new BadRequestException('La cola esta en pausa y no acepta nuevos turnos');
+      }
 
-    if (duplicatedCount > 0) {
-      throw new ConflictException('Ya existe un turno para este telefono en la fecha seleccionada');
-    }
+      const daysAhead = this.daysBetweenUtc(today, queueDate);
+      if (daysAhead < 0) {
+        throw new BadRequestException('No se pueden crear turnos en fechas pasadas');
+      }
+      if (daysAhead > settings.maxDaysAhead) {
+        throw new BadRequestException(
+          `La fecha supera el maximo permitido de ${settings.maxDaysAhead} dia(s) de anticipacion`,
+        );
+      }
 
-    const lastActive = await this.queueRepo
-      .createQueryBuilder('q')
-      .where('q.businessId = :businessId', { businessId })
-      .andWhere('q.queueDate = :queueDate::date', { queueDate })
-      .andWhere('q.status IN (:...statuses)', { statuses: this.activeStatuses() })
-      .orderBy('q.position', 'DESC')
-      .getOne();
+      const duplicatedCount = await queueRepo
+        .createQueryBuilder('q')
+        .where('q.businessId = :businessId', { businessId })
+        .andWhere('q.queueDate = :queueDate::date', { queueDate })
+        .andWhere('q.phoneNumber = :phoneNumber', { phoneNumber: createQueueDto.phoneNumber })
+        .getCount();
 
-    const newItem = this.queueRepo.create({
-      clientName: createQueueDto.clientName,
-      phoneNumber: createQueueDto.phoneNumber,
-      businessId,
-      status: EntityQueueStatus.WAITING,
-      position: (lastActive?.position ?? 0) + 1,
-      estimatedTimeMinutes: createQueueDto.estimatedTimeMinutes ?? 0,
-      priority: createQueueDto.priority ?? false,
-      queueDate: new Date(queueDate),
+      if (duplicatedCount > 0) {
+        throw new ConflictException('Ya existe un turno para este telefono en la fecha seleccionada');
+      }
+
+      // FOR UPDATE bloquea las filas activas del dia hasta que termine la
+      // transaccion: una segunda alta concurrente espera en vez de leer la
+      // misma "ultima posicion" y pisar al primer turno.
+      const lastActive = await queueRepo
+        .createQueryBuilder('q')
+        .setLock('pessimistic_write')
+        .where('q.businessId = :businessId', { businessId })
+        .andWhere('q.queueDate = :queueDate::date', { queueDate })
+        .andWhere('q.status IN (:...statuses)', { statuses: this.activeStatuses() })
+        .orderBy('q.position', 'DESC')
+        .getOne();
+
+      const newItem = queueRepo.create({
+        clientName: createQueueDto.clientName,
+        phoneNumber: createQueueDto.phoneNumber,
+        businessId,
+        status: QueueStatus.WAITING,
+        position: (lastActive?.position ?? 0) + 1,
+        estimatedTimeMinutes: createQueueDto.estimatedTimeMinutes ?? 0,
+        priority: createQueueDto.priority ?? false,
+        queueDate: new Date(queueDate),
+      });
+
+      const saved = await queueRepo.save(newItem);
+
+      await this.settleQueueForDate(manager, businessId, queueDate);
+
+      const refreshed = await queueRepo.findOne({ where: { id: saved.id, businessId } });
+
+      const totalInQueue = await queueRepo
+        .createQueryBuilder('q')
+        .where('q.businessId = :businessId', { businessId })
+        .andWhere('q.queueDate = :queueDate::date', { queueDate })
+        .andWhere('q.status IN (:...statuses)', { statuses: this.activeStatuses() })
+        .getCount();
+
+      this.logger.log(`Turno creado para negocio ${businessId}: ${saved.id}`);
+
+      return {
+        success: true,
+        message: 'Cliente agregado a la cola',
+        data: this.toQueueItem(refreshed ?? saved),
+        totalInQueue,
+      };
     });
-
-    const saved = await this.queueRepo.save(newItem);
-
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
-
-    const refreshed = await this.queueRepo.findOne({ where: { id: saved.id, businessId } });
-
-    const totalInQueue = await this.queueRepo
-      .createQueryBuilder('q')
-      .where('q.businessId = :businessId', { businessId })
-      .andWhere('q.queueDate = :queueDate::date', { queueDate })
-      .andWhere('q.status IN (:...statuses)', { statuses: this.activeStatuses() })
-      .getCount();
-
-    return {
-      success: true,
-      message: 'Cliente agregado a la cola',
-      data: refreshed ?? saved,
-      totalInQueue,
-    };
   }
 
   async updateQueueItem(businessId: string, id: string, updateQueueDto: UpdateQueueDto) {
-    const item = await this.queueRepo.findOne({ where: { id, businessId } });
-    if (!item) {
-      throw new NotFoundException('Turno no encontrado');
-    }
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const item = await queueRepo.findOne({ where: { id, businessId } });
+      if (!item) {
+        throw new NotFoundException('Turno no encontrado');
+      }
 
-    if (updateQueueDto.status !== undefined) {
-      item.status = updateQueueDto.status as unknown as EntityQueueStatus;
-    }
-    if (updateQueueDto.estimatedTimeMinutes !== undefined) {
-      item.estimatedTimeMinutes = updateQueueDto.estimatedTimeMinutes;
-    }
-    if (updateQueueDto.position !== undefined) {
-      item.position = updateQueueDto.position;
-    }
+      if (updateQueueDto.status !== undefined) {
+        item.status = updateQueueDto.status as unknown as QueueStatus;
+      }
+      if (updateQueueDto.estimatedTimeMinutes !== undefined) {
+        item.estimatedTimeMinutes = updateQueueDto.estimatedTimeMinutes;
+      }
+      if (updateQueueDto.position !== undefined) {
+        item.position = updateQueueDto.position;
+      }
 
-    const updated = await this.queueRepo.save(item);
-    const queueDate = item.queueDate.toISOString().slice(0, 10);
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
+      const updated = await queueRepo.save(item);
+      const queueDate = item.queueDate.toISOString().slice(0, 10);
+      await this.settleQueueForDate(manager, businessId, queueDate);
 
-    return {
-      success: true,
-      message: 'Turno actualizado',
-      data: updated,
-    };
+      return {
+        success: true,
+        message: 'Turno actualizado',
+        data: this.toQueueItem(updated),
+      };
+    });
   }
 
   async removeFromQueue(businessId: string, id: string) {
-    const item = await this.queueRepo.findOne({ where: { id, businessId } });
-    if (!item) {
-      throw new NotFoundException('Turno no encontrado');
-    }
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const item = await queueRepo.findOne({ where: { id, businessId } });
+      if (!item) {
+        throw new NotFoundException('Turno no encontrado');
+      }
 
-    await this.queueRepo.remove(item);
+      await queueRepo.remove(item);
 
-    const queueDate = item.queueDate.toISOString().slice(0, 10);
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
+      const queueDate = item.queueDate.toISOString().slice(0, 10);
+      await this.settleQueueForDate(manager, businessId, queueDate);
 
-    return {
-      success: true,
-      message: 'Turno eliminado',
-    };
+      this.logger.log(`Turno eliminado para negocio ${businessId}: ${id}`);
+
+      return {
+        success: true,
+        message: 'Turno eliminado',
+      };
+    });
   }
 
   async nextInQueue(businessId: string) {
-    const queueDate = this.todayDateString();
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const queueDate = this.todayDateString();
 
-    const inProgress = await this.queueRepo
-      .createQueryBuilder('q')
-      .where('q.businessId = :businessId', { businessId })
-      .andWhere('q.queueDate = :queueDate::date', { queueDate })
-      .andWhere('q.status = :status', { status: EntityQueueStatus.IN_PROGRESS })
-      .getOne();
+      const inProgress = await queueRepo
+        .createQueryBuilder('q')
+        .where('q.businessId = :businessId', { businessId })
+        .andWhere('q.queueDate = :queueDate::date', { queueDate })
+        .andWhere('q.status = :status', { status: QueueStatus.IN_PROGRESS })
+        .getOne();
 
-    if (inProgress) {
-      inProgress.status = EntityQueueStatus.COMPLETED;
-      await this.queueRepo.save(inProgress);
-    }
+      if (inProgress) {
+        inProgress.status = QueueStatus.COMPLETED;
+        await queueRepo.save(inProgress);
+      }
 
-    const advanced = await this.advanceNextWaiting(businessId, queueDate);
+      const advanced = await this.advanceNextWaiting(queueRepo, businessId, queueDate);
 
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
+      await this.settleQueueForDate(manager, businessId, queueDate);
 
-    if (!advanced) {
-      return { success: true, message: 'No hay mas turnos en espera', data: null };
-    }
+      if (!advanced) {
+        return { success: true, message: 'No hay mas turnos en espera', data: null };
+      }
 
-    const refreshed = await this.queueRepo.findOne({ where: { id: advanced.id, businessId } });
+      const refreshed = await queueRepo.findOne({ where: { id: advanced.id, businessId } });
 
-    return {
-      success: true,
-      message: 'Siguiente turno',
-      data: refreshed ?? advanced,
-    };
+      return {
+        success: true,
+        message: 'Siguiente turno',
+        data: this.toQueueItem(refreshed ?? advanced),
+      };
+    });
   }
 
   async completeQueueItem(businessId: string, id: string) {
-    const item = await this.queueRepo.findOne({ where: { id, businessId } });
-    if (!item) {
-      throw new NotFoundException('Turno no encontrado');
-    }
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const item = await queueRepo.findOne({ where: { id, businessId } });
+      if (!item) {
+        throw new NotFoundException('Turno no encontrado');
+      }
 
-    item.status = EntityQueueStatus.COMPLETED;
-    const updated = await this.queueRepo.save(item);
+      item.status = QueueStatus.COMPLETED;
+      const updated = await queueRepo.save(item);
 
-    const queueDate = item.queueDate.toISOString().slice(0, 10);
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
+      const queueDate = item.queueDate.toISOString().slice(0, 10);
+      await this.settleQueueForDate(manager, businessId, queueDate);
 
-    return {
-      success: true,
-      message: 'Turno completado',
-      data: updated,
-    };
+      return {
+        success: true,
+        message: 'Turno completado',
+        data: this.toQueueItem(updated),
+      };
+    });
   }
 
   async skipQueueItem(businessId: string, id: string) {
-    const item = await this.queueRepo.findOne({ where: { id, businessId } });
-    if (!item) {
-      throw new NotFoundException('Turno no encontrado');
-    }
+    return this.runInTransaction(async (manager) => {
+      const queueRepo = manager.getRepository(QueueEntity);
+      const item = await queueRepo.findOne({ where: { id, businessId } });
+      if (!item) {
+        throw new NotFoundException('Turno no encontrado');
+      }
 
-    const queueDate = item.queueDate.toISOString().slice(0, 10);
-    const wasInProgress = item.status === EntityQueueStatus.IN_PROGRESS;
+      const queueDate = item.queueDate.toISOString().slice(0, 10);
+      const wasInProgress = item.status === QueueStatus.IN_PROGRESS;
 
-    item.status = EntityQueueStatus.NO_SHOW;
-    const skipped = await this.queueRepo.save(item);
+      item.status = QueueStatus.NO_SHOW;
+      const skipped = await queueRepo.save(item);
 
-    if (wasInProgress) {
-      await this.advanceNextWaiting(businessId, queueDate);
-    }
+      if (wasInProgress) {
+        await this.advanceNextWaiting(queueRepo, businessId, queueDate);
+      }
 
-    await this.reindexActiveQueueForDate(businessId, queueDate);
-    await this.recalculateEstimatedTimes(businessId, queueDate);
+      await this.settleQueueForDate(manager, businessId, queueDate);
 
-    return {
-      success: true,
-      message: 'Turno omitido',
-      data: skipped,
-    };
+      return {
+        success: true,
+        message: 'Turno omitido',
+        data: this.toQueueItem(skipped),
+      };
+    });
   }
 
   async pauseQueue(businessId: string) {
-    const { business, settings } = await this.getBusinessAndSettings(businessId);
+    const { business, settings } = await this.loadBusinessAndSettings(this.userRepo, businessId);
     business.settings = {
       ...settings,
       queuePaused: true,
@@ -396,7 +454,7 @@ export class QueueService {
   }
 
   async resumeQueue(businessId: string) {
-    const { business, settings } = await this.getBusinessAndSettings(businessId);
+    const { business, settings } = await this.loadBusinessAndSettings(this.userRepo, businessId);
     business.settings = {
       ...settings,
       queuePaused: false,

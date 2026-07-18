@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { QueueEntity, QueueStatus as EntityQueueStatus } from './queue.entity';
@@ -10,6 +10,7 @@ const BUSINESS_ID = 'biz-uuid-1234';
 
 function makeQueryBuilder(overrides: Record<string, jest.Mock> = {}) {
   const builder: Record<string, jest.Mock> = {
+    setLock: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -39,6 +40,23 @@ describe('QueueService', () => {
     save: jest.fn(),
   };
 
+  // La transaccion resuelve repos via manager.getRepository(Entity); devolvemos
+  // los mismos mocks para que las expectativas existentes no cambien de forma.
+  const mockManager = {
+    getRepository: jest.fn((entity: unknown) => {
+      if (entity === UserEntity) {
+        return mockUserRepo;
+      }
+      return mockQueueRepo;
+    }),
+  };
+
+  const mockDataSource = {
+    transaction: jest.fn((work: (manager: typeof mockManager) => Promise<unknown>) =>
+      work(mockManager),
+    ),
+  };
+
   beforeEach(async () => {
     builder = makeQueryBuilder();
     mockQueueRepo.createQueryBuilder.mockReturnValue(builder);
@@ -48,6 +66,7 @@ describe('QueueService', () => {
         QueueService,
         { provide: getRepositoryToken(QueueEntity), useValue: mockQueueRepo },
         { provide: getRepositoryToken(UserEntity), useValue: mockUserRepo },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
       ],
     }).compile();
 

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuthenticatedUser, LoginDto, RegisterDto } from './auth.dto';
 import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
@@ -24,6 +25,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async register(@Body() dto: RegisterDto, @Req() req: RegisterRequest) {
     const userAgent = Array.isArray(req.headers['user-agent'])
       ? req.headers['user-agent'][0]
@@ -44,6 +46,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }

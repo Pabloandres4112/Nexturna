@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
-import { WhatsAppService } from './whatsapp.service';
+import { WhatsAppApiClient } from './whatsapp-api.client';
 
-describe('WhatsAppService', () => {
-  let service: WhatsAppService;
+describe('WhatsAppApiClient', () => {
+  let service: WhatsAppApiClient;
 
   const baseConfig: Record<string, unknown> = {
     WHATSAPP_API_URL: 'https://graph.facebook.com/v21.0',
@@ -23,10 +23,10 @@ describe('WhatsAppService', () => {
     mockConfigService.get.mockImplementation((key: string) => baseConfig[key]);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [WhatsAppService, { provide: ConfigService, useValue: mockConfigService }],
+      providers: [WhatsAppApiClient, { provide: ConfigService, useValue: mockConfigService }],
     }).compile();
 
-    service = module.get<WhatsAppService>(WhatsAppService);
+    service = module.get<WhatsAppApiClient>(WhatsAppApiClient);
   });
 
   afterEach(() => {

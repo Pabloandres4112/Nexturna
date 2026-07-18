@@ -12,13 +12,9 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { QueueStatus } from './queue.entity';
 
-export enum QueueStatus {
-  WAITING = 'waiting',
-  IN_PROGRESS = 'in-progress',
-  COMPLETED = 'completed',
-  NO_SHOW = 'noShow',
-}
+export { QueueStatus };
 
 export interface QueueItem {
   id: string;

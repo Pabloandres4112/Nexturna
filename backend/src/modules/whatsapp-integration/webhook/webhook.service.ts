@@ -164,8 +164,9 @@ export class WebhookService {
     xHubSignature: string,
     bodyJson: any,
   ): Promise<{ success: boolean; message: string }> {
-    // Validar firma (deshabilitado si APP_SECRET no está configurado)
-    if (xHubSignature && !this.validateSignature(bodyString, xHubSignature)) {
+    // La firma es obligatoria: sin ella (o si no valida), se rechaza siempre.
+    // Antes esta verificacion se saltaba por completo cuando faltaba el header.
+    if (!xHubSignature || !this.validateSignature(bodyString, xHubSignature)) {
       throw new BadRequestException('Firma del webhook inválida');
     }
 

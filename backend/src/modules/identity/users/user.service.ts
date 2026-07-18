@@ -1,51 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { User, CreateUserResponse, UpdateUserResponse, UserSettings } from './user.types';
 import { UserEntity } from './user.entity';
 import { UserRole } from './user-role.enum';
+import { defaultUserSettings, normalizeUserSettings } from './user-settings.util';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
   ) {}
-
-  private defaultSettings(): UserSettings {
-    return {
-      averageServiceTime: 30,
-      automationEnabled: true,
-      excludedContacts: [],
-      maxDaysAhead: 7,
-      queuePaused: false,
-    };
-  }
-
-  private normalizeSettings(settings: UserEntity['settings'] | null | undefined): UserSettings {
-    const defaults = this.defaultSettings();
-
-    return {
-      averageServiceTime:
-        typeof settings?.averageServiceTime === 'number' && settings.averageServiceTime > 0
-          ? settings.averageServiceTime
-          : defaults.averageServiceTime,
-      automationEnabled:
-        typeof settings?.automationEnabled === 'boolean'
-          ? settings.automationEnabled
-          : defaults.automationEnabled,
-      excludedContacts: Array.isArray(settings?.excludedContacts)
-        ? settings.excludedContacts.filter((value): value is string => typeof value === 'string')
-        : defaults.excludedContacts,
-      maxDaysAhead:
-        typeof settings?.maxDaysAhead === 'number' && settings.maxDaysAhead >= 0
-          ? settings.maxDaysAhead
-          : defaults.maxDaysAhead,
-      queuePaused:
-        typeof settings?.queuePaused === 'boolean' ? settings.queuePaused : defaults.queuePaused,
-    };
-  }
 
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
@@ -57,7 +26,7 @@ export class UserService {
       role: user.role,
       businessName: user.businessName,
       whatsappNumber: user.whatsappNumber,
-      settings: this.normalizeSettings(user.settings),
+      settings: normalizeUserSettings(user.settings),
     }));
   }
 
@@ -73,7 +42,7 @@ export class UserService {
       role: user.role,
       businessName: user.businessName,
       whatsappNumber: user.whatsappNumber,
-      settings: this.normalizeSettings(user.settings),
+      settings: normalizeUserSettings(user.settings),
     };
   }
 
@@ -83,7 +52,7 @@ export class UserService {
       businessName: createUserDto.businessName,
       whatsappNumber: createUserDto.whatsappNumber,
       email: createUserDto.email ?? null,
-      settings: this.defaultSettings(),
+      settings: defaultUserSettings(),
     });
 
     const savedUser = await this.userRepository.save(user);
@@ -99,6 +68,7 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
+      this.logger.warn(`Intento de actualizar usuario inexistente: ${id}`);
       throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     }
 
@@ -112,10 +82,10 @@ export class UserService {
 
     if (updateUserDto.settings !== undefined) {
       user.settings = {
-        ...this.normalizeSettings(user.settings),
+        ...normalizeUserSettings(user.settings),
         ...updateUserDto.settings,
       };
-      user.settings = this.normalizeSettings(user.settings);
+      user.settings = normalizeUserSettings(user.settings);
     }
 
     await this.userRepository.save(user);
@@ -133,7 +103,7 @@ export class UserService {
       throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     }
 
-    return this.normalizeSettings(user.settings);
+    return normalizeUserSettings(user.settings);
   }
 
   /**
@@ -147,7 +117,7 @@ export class UserService {
       throw new NotFoundException(`Usuario con id ${userId} no encontrado`);
     }
 
-    const normalizedSettings = this.normalizeSettings(user.settings);
+    const normalizedSettings = normalizeUserSettings(user.settings);
     const currentExcluded = normalizedSettings.excludedContacts;
 
     // Verificar si ya está en la lista
@@ -184,7 +154,7 @@ export class UserService {
       throw new NotFoundException(`Usuario con id ${userId} no encontrado`);
     }
 
-    const normalizedSettings = this.normalizeSettings(user.settings);
+    const normalizedSettings = normalizeUserSettings(user.settings);
     const currentExcluded = normalizedSettings.excludedContacts;
 
     // Verificar si existe en la lista
@@ -223,7 +193,7 @@ export class UserService {
 
     return {
       success: true,
-      excludedContacts: this.normalizeSettings(user.settings).excludedContacts,
+      excludedContacts: normalizeUserSettings(user.settings).excludedContacts,
     };
   }
 }
