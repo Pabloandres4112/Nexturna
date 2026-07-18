@@ -81,6 +81,6 @@ describe('SettingsScreen', () => {
       renderer = ReactTestRenderer.create(<SettingsScreen />);
     });
 
-    expect(getAllText(renderer!.root)).toContain('TurnoYa v1.0.0');
+    expect(getAllText(renderer!.root)).toContain('Nexturna v1.0.0');
   });
 });

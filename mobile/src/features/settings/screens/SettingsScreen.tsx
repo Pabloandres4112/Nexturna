@@ -168,8 +168,8 @@ const SettingsScreen: React.FC = () => {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.version}>TurnoYa v1.0.0</Text>
-            <Text style={styles.copyright}>2026 TurnoYa</Text>
+            <Text style={styles.version}>Nexturna v1.0.0</Text>
+            <Text style={styles.copyright}>2026 Nexturna</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -58,7 +58,7 @@ const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <LoadingSpinner fullscreen message="Iniciando TurnoYa..." />;
+    return <LoadingSpinner fullscreen message="Iniciando Nexturna..." />;
   }
 
   return (

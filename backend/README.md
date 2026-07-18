@@ -1,4 +1,4 @@
-# TurnoYa Backend
+# Nexturna Backend
 
 Backend para el sistema de gestión de turnos por WhatsApp.
 

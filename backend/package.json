@@ -1,7 +1,7 @@
 {
-  "name": "turnoya-backend",
+  "name": "nexturna-backend",
   "version": "1.0.0",
-  "description": "Backend para TurnoYa - Sistema de gestión de turnos por WhatsApp",
+  "description": "Backend para Nexturna - Sistema de gestión de turnos por WhatsApp",
   "author": "Tu Nombre",
   "private": true,
   "license": "MIT",

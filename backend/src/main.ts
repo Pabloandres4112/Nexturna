@@ -73,7 +73,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 TurnoYa Backend corriendo en http://localhost:${port}`);
+  console.log(`🚀 Nexturna Backend corriendo en http://localhost:${port}`);
   console.log(`📚 API disponible en http://localhost:${port}/api/v1`);
 }
 
