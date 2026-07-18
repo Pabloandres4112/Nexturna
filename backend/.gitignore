@@ -6,6 +6,11 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
+# El proyecto usa pnpm (ver pnpm-lock.yaml / pnpm-workspace.yaml).
+# Un npm install accidental no debe generar un segundo lockfile.
+package-lock.json
+yarn.lock
+
 # Compilados
 dist/
 build/

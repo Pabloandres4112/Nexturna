@@ -54,7 +54,7 @@ services:
 
   # pgAdmin
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:8.12
     ports:
       - "5051:80"
     environment:
