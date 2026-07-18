@@ -117,9 +117,7 @@ export class MessageLogController {
   @Get('health/failed-count')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BUSINESS_OWNER)
-  async getFailedCount(
-    @CurrentBusinessId() businessId: string,
-  ): Promise<{ failedCount: number }> {
+  async getFailedCount(@CurrentBusinessId() businessId: string): Promise<{ failedCount: number }> {
     const failedCount = await this.messageLogService.countFailedMessages(businessId);
     return { failedCount };
   }

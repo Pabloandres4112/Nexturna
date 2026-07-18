@@ -182,7 +182,9 @@ export class MessageLogService {
 
     const affected = result.affected ?? 0;
     if (affected > 0) {
-      this.logger.warn(`${affected} mensaje(s) marcados como FAILED por estar PENDING > ${minutesThreshold}min`);
+      this.logger.warn(
+        `${affected} mensaje(s) marcados como FAILED por estar PENDING > ${minutesThreshold}min`,
+      );
     }
 
     return affected;

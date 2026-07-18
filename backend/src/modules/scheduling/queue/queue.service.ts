@@ -251,7 +251,9 @@ export class QueueService {
         .getCount();
 
       if (duplicatedCount > 0) {
-        throw new ConflictException('Ya existe un turno para este telefono en la fecha seleccionada');
+        throw new ConflictException(
+          'Ya existe un turno para este telefono en la fecha seleccionada',
+        );
       }
 
       // FOR UPDATE bloquea las filas activas del dia hasta que termine la
