@@ -18,7 +18,10 @@ describe('WhatsAppApiClient', () => {
     get: jest.fn((key: string) => baseConfig[key]),
   };
 
+  let originalFetch: typeof global.fetch;
+
   beforeEach(async () => {
+    originalFetch = global.fetch;
     mockConfigService.get.mockReset();
     mockConfigService.get.mockImplementation((key: string) => baseConfig[key]);
 
@@ -30,6 +33,7 @@ describe('WhatsAppApiClient', () => {
   });
 
   afterEach(() => {
+    global.fetch = originalFetch;
     jest.clearAllMocks();
     jest.restoreAllMocks();
   });

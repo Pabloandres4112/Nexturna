@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MessageLogService } from '../message-log/message-log.service';
 import { MessageDirection, MessageType, MessageStatus } from '../message-log/message-log.entity';
@@ -164,6 +169,13 @@ export class WebhookService {
     xHubSignature: string,
     bodyJson: any,
   ): Promise<{ success: boolean; message: string }> {
+    // Falla explicito por mala configuracion ANTES de validar firma: sin esto,
+    // un WHATSAPP_APP_SECRET faltante se reportaba como "firma invalida",
+    // que suena a webhook falso en vez de a un problema nuestro de config.
+    if (!this.configService.get<string>('WHATSAPP_APP_SECRET')) {
+      throw new InternalServerErrorException('WHATSAPP_APP_SECRET no configurado');
+    }
+
     // La firma es obligatoria: sin ella (o si no valida), se rechaza siempre.
     // Antes esta verificacion se saltaba por completo cuando faltaba el header.
     if (!xHubSignature || !this.validateSignature(bodyString, xHubSignature)) {

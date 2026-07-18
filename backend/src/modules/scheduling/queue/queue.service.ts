@@ -214,10 +214,27 @@ export class QueueService {
   }
 
   /**
-   * Alta a la cola. Corre dentro de una transaccion con SELECT ... FOR UPDATE
-   * sobre la ultima posicion activa: dos altas concurrentes para el mismo
-   * negocio ya no pueden calcular la misma posicion ni saltarse la
-   * verificacion de telefono duplicado (antes eran 3+ queries sueltas).
+   * Adquiere un advisory lock de Postgres para (businessId, queueDate),
+   * liberado automaticamente al terminar la transaccion. A diferencia de un
+   * SELECT ... FOR UPDATE, esto serializa altas concurrentes AUNQUE la cola
+   * del dia todavia no tenga ninguna fila que bloquear (el caso que se nos
+   * escapaba: el primer turno del dia para un negocio).
+   */
+  private async lockQueueForDate(
+    manager: EntityManager,
+    businessId: string,
+    queueDate: string,
+  ): Promise<void> {
+    await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+      `${businessId}:${queueDate}`,
+    ]);
+  }
+
+  /**
+   * Alta a la cola. Corre dentro de una transaccion, serializada por
+   * (businessId, queueDate) via advisory lock: dos altas concurrentes para
+   * el mismo negocio/dia ya no pueden calcular la misma posicion ni
+   * saltarse la verificacion de telefono duplicado.
    */
   async addToQueue(businessId: string, createQueueDto: CreateQueueDto) {
     return this.runInTransaction(async (manager) => {
@@ -243,6 +260,11 @@ export class QueueService {
         );
       }
 
+      // A partir de aca dos requests concurrentes para el mismo negocio/dia
+      // quedan serializadas: la segunda espera a que la primera confirme o
+      // revierta antes de leer duplicados o la ultima posicion.
+      await this.lockQueueForDate(manager, businessId, queueDate);
+
       const duplicatedCount = await queueRepo
         .createQueryBuilder('q')
         .where('q.businessId = :businessId', { businessId })
@@ -256,12 +278,8 @@ export class QueueService {
         );
       }
 
-      // FOR UPDATE bloquea las filas activas del dia hasta que termine la
-      // transaccion: una segunda alta concurrente espera en vez de leer la
-      // misma "ultima posicion" y pisar al primer turno.
       const lastActive = await queueRepo
         .createQueryBuilder('q')
-        .setLock('pessimistic_write')
         .where('q.businessId = :businessId', { businessId })
         .andWhere('q.queueDate = :queueDate::date', { queueDate })
         .andWhere('q.status IN (:...statuses)', { statuses: this.activeStatuses() })

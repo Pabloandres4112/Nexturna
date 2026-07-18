@@ -61,7 +61,7 @@ export class AuthService {
     });
 
     if (existing) {
-      this.logger.warn(`Intento de registro duplicado para ${dto.whatsappNumber}`);
+      this.logger.warn('Intento de registro duplicado (numero/email ya existente)');
       throw new ConflictException('El usuario ya existe');
     }
 
@@ -123,7 +123,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      this.logger.warn(`Login fallido: identificador no encontrado (${dto.identifier})`);
+      this.logger.warn('Login fallido: identificador no encontrado');
       throw new UnauthorizedException('Credenciales inválidas');
     }
 

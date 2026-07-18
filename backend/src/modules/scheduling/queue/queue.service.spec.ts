@@ -43,6 +43,7 @@ describe('QueueService', () => {
   // La transaccion resuelve repos via manager.getRepository(Entity); devolvemos
   // los mismos mocks para que las expectativas existentes no cambien de forma.
   const mockManager = {
+    query: jest.fn().mockResolvedValue(undefined),
     getRepository: jest.fn((entity: unknown) => {
       if (entity === UserEntity) {
         return mockUserRepo;
