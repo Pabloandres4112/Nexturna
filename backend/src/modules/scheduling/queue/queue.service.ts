@@ -358,7 +358,7 @@ export class QueueService {
       };
     });
 
-    await this.notifyQueueConfirmation(item, settings);
+    void this.notifyQueueConfirmation(item, settings);
 
     return response;
   }
