@@ -4,6 +4,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { QueueService } from './queue.service';
 import { QueueEntity, QueueStatus as EntityQueueStatus } from './queue.entity';
 import { UserEntity } from '@identity/users/user.entity';
+import { WhatsAppService } from '@whatsapp/messaging/whatsapp.service';
 import { CreateQueueDto, UpdateQueueDto, QueueStatus } from './queue.dto';
 
 const BUSINESS_ID = 'biz-uuid-1234';
@@ -58,6 +59,10 @@ describe('QueueService', () => {
     ),
   };
 
+  const mockWhatsAppService = {
+    sendQueueConfirmation: jest.fn().mockResolvedValue({ success: true, messageId: 'wamid.1' }),
+  };
+
   beforeEach(async () => {
     builder = makeQueryBuilder();
     mockQueueRepo.createQueryBuilder.mockReturnValue(builder);
@@ -68,6 +73,7 @@ describe('QueueService', () => {
         { provide: getRepositoryToken(QueueEntity), useValue: mockQueueRepo },
         { provide: getRepositoryToken(UserEntity), useValue: mockUserRepo },
         { provide: getDataSourceToken(), useValue: mockDataSource },
+        { provide: WhatsAppService, useValue: mockWhatsAppService },
       ],
     }).compile();
 
@@ -161,6 +167,111 @@ describe('QueueService', () => {
 
       expect(result.success).toBe(true);
       expect(result.totalInQueue).toBe(1);
+    });
+
+    it('should send WhatsApp confirmation when automationEnabled is true', async () => {
+      mockUserRepo.findOne.mockResolvedValue({
+        id: BUSINESS_ID,
+        settings: {
+          averageServiceTime: 20,
+          automationEnabled: true,
+          excludedContacts: [],
+          maxDaysAhead: 2,
+          queuePaused: false,
+        },
+      });
+
+      const dto: CreateQueueDto = {
+        clientName: 'Cliente',
+        phoneNumber: '+573001111111',
+      };
+
+      builder.getCount.mockResolvedValueOnce(0).mockResolvedValue(1);
+      builder.getOne.mockResolvedValue(null);
+      mockQueueRepo.findOne.mockResolvedValue({
+        id: 'new-uuid',
+        ...dto,
+        position: 1,
+        estimatedTimeMinutes: 20,
+      });
+
+      await service.addToQueue(BUSINESS_ID, dto);
+
+      expect(mockWhatsAppService.sendQueueConfirmation).toHaveBeenCalledWith(
+        '+573001111111',
+        1,
+        20,
+      );
+    });
+
+    it('should not send WhatsApp confirmation when automationEnabled is false', async () => {
+      const dto: CreateQueueDto = {
+        clientName: 'Cliente',
+        phoneNumber: '+573001111111',
+      };
+
+      builder.getCount.mockResolvedValueOnce(0).mockResolvedValue(1);
+      builder.getOne.mockResolvedValue(null);
+      mockQueueRepo.findOne.mockResolvedValue({ id: 'new-uuid', ...dto, position: 1 });
+
+      await service.addToQueue(BUSINESS_ID, dto);
+
+      expect(mockWhatsAppService.sendQueueConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('should not send WhatsApp confirmation when contact is excluded', async () => {
+      mockUserRepo.findOne.mockResolvedValue({
+        id: BUSINESS_ID,
+        settings: {
+          averageServiceTime: 20,
+          automationEnabled: true,
+          excludedContacts: ['+573001111111'],
+          maxDaysAhead: 2,
+          queuePaused: false,
+        },
+      });
+
+      const dto: CreateQueueDto = {
+        clientName: 'Cliente',
+        phoneNumber: '+573001111111',
+      };
+
+      builder.getCount.mockResolvedValueOnce(0).mockResolvedValue(1);
+      builder.getOne.mockResolvedValue(null);
+      mockQueueRepo.findOne.mockResolvedValue({ id: 'new-uuid', ...dto, position: 1 });
+
+      await service.addToQueue(BUSINESS_ID, dto);
+
+      expect(mockWhatsAppService.sendQueueConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('should still return success when WhatsApp send fails', async () => {
+      mockUserRepo.findOne.mockResolvedValue({
+        id: BUSINESS_ID,
+        settings: {
+          averageServiceTime: 20,
+          automationEnabled: true,
+          excludedContacts: [],
+          maxDaysAhead: 2,
+          queuePaused: false,
+        },
+      });
+      mockWhatsAppService.sendQueueConfirmation.mockRejectedValueOnce(
+        new Error('Graph API caida'),
+      );
+
+      const dto: CreateQueueDto = {
+        clientName: 'Cliente',
+        phoneNumber: '+573001111111',
+      };
+
+      builder.getCount.mockResolvedValueOnce(0).mockResolvedValue(1);
+      builder.getOne.mockResolvedValue(null);
+      mockQueueRepo.findOne.mockResolvedValue({ id: 'new-uuid', ...dto, position: 1 });
+
+      const result = await service.addToQueue(BUSINESS_ID, dto);
+
+      expect(result.success).toBe(true);
     });
   });
 
