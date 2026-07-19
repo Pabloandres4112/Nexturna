@@ -256,9 +256,9 @@ export class QueueService {
         item.estimatedTimeMinutes,
       );
     } catch (error) {
-      this.logger.error(
-        `No se pudo enviar confirmacion de WhatsApp para el turno ${item.id}: ${error}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`No se pudo enviar confirmacion de WhatsApp para el turno ${item.id}: ${message}`, stack);
     }
   }
 
