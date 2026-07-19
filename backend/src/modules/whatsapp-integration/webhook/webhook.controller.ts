@@ -78,20 +78,9 @@ export class WebhookController {
       // Para validar la firma necesitamos el raw body como string
       const rawBody = req.rawBody || JSON.stringify(body);
 
-      // TODO: Extraer businessId y userId de la request
-      // En producción, esto vendría de un query param o de un lookup en DB
-      // basado en el phone_number_id de Meta
-      const businessId = 'business-123'; // Placeholder
-      const userId = 'user-123'; // Placeholder
-
-      // Procesar el webhook
-      const result = await this.webhookService.processWebhook(
-        businessId,
-        userId,
-        rawBody,
-        xHubSignature,
-        body,
-      );
+      // El negocio ya no se asume: WebhookService lo resuelve por entrada,
+      // via phone_number_id -> MetaConnectionService.
+      const result = await this.webhookService.processWebhook(rawBody, xHubSignature, body);
 
       this.logger.debug(`Webhook procesado: ${result.message}`);
 

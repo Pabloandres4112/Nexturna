@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { MessageLogService } from '../message-log/message-log.service';
 import { MessageDirection, MessageType, MessageStatus } from '../message-log/message-log.entity';
 import { CreateMessageLogDto } from '../message-log/message-log.dto';
+import { MetaConnectionService } from '../connection/meta-connection.service';
 import * as crypto from 'crypto';
 
 /**
@@ -21,6 +22,7 @@ export class WebhookService {
   constructor(
     private readonly configService: ConfigService,
     private readonly messageLogService: MessageLogService,
+    private readonly metaConnectionService: MetaConnectionService,
   ) {}
 
   /**
@@ -159,12 +161,38 @@ export class WebhookService {
   }
 
   /**
+   * Resuelve a que negocio pertenece una entrada del webhook, a partir del
+   * phone_number_id que Meta manda en value.metadata. Reemplaza los
+   * placeholders hardcodeados ('business-123') que existian antes: ahora
+   * cada entrada se rutea al negocio real via MetaConnectionService.
+   * "userId" hoy es el mismo valor que businessId (ver nota en
+   * MessageLogController), no hay distincion owner/staff todavia.
+   */
+  private async resolveBusinessId(entry: any): Promise<string | null> {
+    const phoneNumberId = entry?.changes?.[0]?.value?.metadata?.phone_number_id;
+
+    if (!phoneNumberId) {
+      this.logger.warn('Entrada de webhook sin phone_number_id, se ignora');
+      return null;
+    }
+
+    const businessId = await this.metaConnectionService.findBusinessIdByPhoneNumberId(
+      phoneNumberId,
+    );
+
+    if (!businessId) {
+      this.logger.warn(`Webhook de un phone_number_id sin negocio conectado: ${phoneNumberId}`);
+      return null;
+    }
+
+    return businessId;
+  }
+
+  /**
    * Procesa el webhook POST de Meta.
    * Valida firma, extrae los eventos, y despacha a handlers.
    */
   async processWebhook(
-    businessId: string,
-    userId: string,
     bodyString: string,
     xHubSignature: string,
     bodyJson: any,
@@ -187,10 +215,15 @@ export class WebhookService {
       throw new BadRequestException('Webhook object inválido');
     }
 
-    // Procesar cada entrada
+    // Procesar cada entrada, resolviendo el negocio real por entrada (en vez
+    // de asumir un unico negocio para todo el payload).
     const entries = bodyJson.entry || [];
     for (const entry of entries) {
-      await this.dispatchEvent(businessId, userId, entry);
+      const businessId = await this.resolveBusinessId(entry);
+      if (!businessId) {
+        continue;
+      }
+      await this.dispatchEvent(businessId, businessId, entry);
     }
 
     return {

@@ -7,6 +7,13 @@ import ReactTestRenderer from 'react-test-renderer';
 import SettingsScreen from '../src/features/settings/screens/SettingsScreen';
 import {getAllText} from '../src/testUtils';
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+  }),
+}));
+
 jest.mock('@features/auth', () => ({
   useAuth: jest.fn(() => ({
     user: {
