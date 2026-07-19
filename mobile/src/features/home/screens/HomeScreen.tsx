@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@app/navigation/types';
 import { useAuth } from '@features/auth';
-import { useQueue } from '@features/queue';
+import { useQueue, useQueueHistory } from '@features/queue';
 import { useSettings } from '@features/settings';
 import { Card, LoadingSpinner, NexturnaLogo } from '@ui-kit';
 import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
@@ -36,8 +36,16 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, tint }) => (
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeNavProp>();
   const { user, logout } = useAuth();
-  const { waitingCount, completedCount, noShowCount, loading: queueLoading, refresh } = useQueue();
+  const { waitingCount, loading: queueLoading, refresh: refreshQueue } = useQueue();
+  const { completedCount, noShowCount, loading: historyLoading, refresh: refreshHistory } =
+    useQueueHistory();
   const { settings } = useSettings();
+
+  const loading = queueLoading || historyLoading;
+
+  const refresh = async () => {
+    await Promise.all([refreshQueue(), refreshHistory()]);
+  };
 
   const handleLogout = () => {
     Alert.alert('Cerrar sesión', '¿Seguro que deseas salir?', [
@@ -46,7 +54,7 @@ const HomeScreen: React.FC = () => {
     ]);
   };
 
-  if (queueLoading) {
+  if (loading) {
     return <LoadingSpinner fullscreen message="Cargando dashboard..." />;
   }
 
@@ -58,7 +66,7 @@ const HomeScreen: React.FC = () => {
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={queueLoading} onRefresh={refresh} />
+          <RefreshControl refreshing={loading} onRefresh={refresh} />
         }>
         {/* Header */}
         <View style={styles.header}>
@@ -162,6 +170,23 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.actionTitle}>Agregar cliente</Text>
               <Text style={styles.actionSubtitle}>
                 Registrar nuevo turno
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.actionNeutral]}
+          onPress={() => navigation.navigate('History')}
+          activeOpacity={0.85}>
+          <View style={styles.actionContent}>
+            <View style={styles.actionIconNeutral}>
+              <View style={styles.actionIconInner} />
+            </View>
+            <View>
+              <Text style={styles.actionTitle}>Ver historial</Text>
+              <Text style={styles.actionSubtitle}>
+                {completedCount + noShowCount} turnos resueltos hoy
               </Text>
             </View>
           </View>

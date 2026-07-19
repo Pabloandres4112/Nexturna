@@ -110,6 +110,51 @@ describe('QueueService', () => {
     });
   });
 
+  describe('getQueueHistory', () => {
+    it('should return only completed/noShow items with counts, defaulting to today', async () => {
+      const now = new Date();
+      builder.getMany.mockResolvedValue([
+        {
+          id: '1',
+          clientName: 'Ana',
+          phoneNumber: '+573000000001',
+          position: 1,
+          status: EntityQueueStatus.COMPLETED,
+          estimatedTimeMinutes: 0,
+          priority: false,
+          createdAt: now,
+          updatedAt: now,
+          queueDate: now,
+        },
+        {
+          id: '2',
+          clientName: 'Beto',
+          phoneNumber: '+573000000002',
+          position: 2,
+          status: EntityQueueStatus.NO_SHOW,
+          estimatedTimeMinutes: 0,
+          priority: false,
+          createdAt: now,
+          updatedAt: now,
+          queueDate: now,
+        },
+      ]);
+
+      const result = await service.getQueueHistory(BUSINESS_ID);
+
+      expect(result.total).toBe(2);
+      expect(result.completedCount).toBe(1);
+      expect(result.noShowCount).toBe(1);
+      expect(result.items).toHaveLength(2);
+    });
+
+    it('should throw on invalid date', async () => {
+      await expect(service.getQueueHistory(BUSINESS_ID, 'not-a-date')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
   describe('addToQueue', () => {
     it('should reject when queue is paused', async () => {
       mockUserRepo.findOne.mockResolvedValue({

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { useAuth, AuthNavigator } from '@features/auth';
 import { HomeScreen } from '@features/home';
-import { QueueScreen, AddClientScreen, ClientDetailScreen } from '@features/queue';
+import { QueueScreen, AddClientScreen, ClientDetailScreen, HistoryScreen } from '@features/queue';
 import { SettingsScreen } from '@features/settings';
 import { WhatsAppTestScreen } from '@features/whatsapp';
 import { LoadingSpinner } from '@ui-kit';
@@ -51,6 +51,11 @@ const AppNavigator: React.FC = () => (
       name="ClientDetail"
       component={ClientDetailScreen}
       options={{ title: 'Detalle del Turno' }}
+    />
+    <AppStack.Screen
+      name="History"
+      component={HistoryScreen}
+      options={{ title: 'Historial del dia' }}
     />
     <AppStack.Screen
       name="WhatsAppTest"

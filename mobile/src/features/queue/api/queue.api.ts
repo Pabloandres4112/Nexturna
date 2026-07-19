@@ -1,6 +1,7 @@
 import httpClient from '@lib/httpClient';
 import {
   QueueResponse,
+  QueueHistoryResponse,
   CreateQueueDto,
   QueueMutationResponse,
   UpdateQueueDto,
@@ -9,6 +10,13 @@ import {
 export const queueApi = {
   getQueue: async (): Promise<QueueResponse> => {
     const { data } = await httpClient.get<QueueResponse>('/queue');
+    return data;
+  },
+
+  getQueueHistory: async (date?: string): Promise<QueueHistoryResponse> => {
+    const { data } = await httpClient.get<QueueHistoryResponse>('/queue/history', {
+      params: date ? { date } : undefined,
+    });
     return data;
   },
 

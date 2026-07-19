@@ -7,11 +7,17 @@ import {
   Body,
   ParseUUIDPipe,
   Param,
+  Query,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
 import { QueueService } from './queue.service';
-import { CreateQueueDto, GetQueueResponse, UpdateQueueDto } from './queue.dto';
+import {
+  CreateQueueDto,
+  GetQueueHistoryResponse,
+  GetQueueResponse,
+  UpdateQueueDto,
+} from './queue.dto';
 import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
 import { CurrentBusinessId } from '@shared/decorators/current-business-id.decorator';
 
@@ -23,6 +29,17 @@ export class QueueController {
   @Get()
   async getQueue(@CurrentBusinessId() businessId: string): Promise<GetQueueResponse> {
     return this.queueService.getQueue(businessId);
+  }
+
+  @Get('history')
+  async getQueueHistory(
+    @CurrentBusinessId() businessId: string,
+    @Query('date') date?: string,
+  ): Promise<GetQueueHistoryResponse> {
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Fecha inválida. Usa formato YYYY-MM-DD');
+    }
+    return this.queueService.getQueueHistory(businessId, date);
   }
 
   @Get(':date')

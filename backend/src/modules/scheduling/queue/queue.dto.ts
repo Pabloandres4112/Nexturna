@@ -26,6 +26,7 @@ export interface QueueItem {
   estimatedTimeMinutes: number;
   priority: boolean;
   createdAt: Date;
+  updatedAt: Date;
   queueDate: Date;
 }
 
@@ -33,6 +34,15 @@ export interface GetQueueResponse {
   queue: QueueItem[];
   total: number;
   currentPosition: number;
+  message: string;
+}
+
+export interface GetQueueHistoryResponse {
+  items: QueueItem[];
+  total: number;
+  completedCount: number;
+  noShowCount: number;
+  date: string;
   message: string;
 }
 
