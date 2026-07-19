@@ -11,6 +11,7 @@ import { QueueEntity, QueueStatus } from './queue.entity';
 import { UserEntity } from '@identity/users/user.entity';
 import { normalizeUserSettings } from '@identity/users/user-settings.util';
 import { CreateQueueDto, GetQueueHistoryResponse, QueueItem, UpdateQueueDto } from './queue.dto';
+import { WhatsAppService } from '@whatsapp/messaging/whatsapp.service';
 
 @Injectable()
 export class QueueService {
@@ -23,6 +24,7 @@ export class QueueService {
     private readonly userRepo: Repository<UserEntity>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly whatsAppService: WhatsAppService,
   ) {}
 
   private toQueueItem(entity: QueueEntity): QueueItem {
@@ -265,13 +267,43 @@ export class QueueService {
   }
 
   /**
+   * Envia la confirmacion de WhatsApp por fuera de la transaccion de
+   * addToQueue: es un efecto secundario, no debe mantener el advisory lock
+   * tomado mientras esperamos a la Graph API, y si falla no debe voltear un
+   * turno que ya quedo confirmado en base de datos.
+   */
+  private async notifyQueueConfirmation(
+    item: QueueItem,
+    settings: ReturnType<typeof normalizeUserSettings>,
+  ): Promise<void> {
+    if (!settings.automationEnabled) {
+      return;
+    }
+    if (settings.excludedContacts.includes(item.phoneNumber)) {
+      return;
+    }
+
+    try {
+      await this.whatsAppService.sendQueueConfirmation(
+        item.phoneNumber,
+        item.position,
+        item.estimatedTimeMinutes,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`No se pudo enviar confirmacion de WhatsApp para el turno ${item.id}: ${message}`, stack);
+    }
+  }
+
+  /**
    * Alta a la cola. Corre dentro de una transaccion, serializada por
    * (businessId, queueDate) via advisory lock: dos altas concurrentes para
    * el mismo negocio/dia ya no pueden calcular la misma posicion ni
    * saltarse la verificacion de telefono duplicado.
    */
   async addToQueue(businessId: string, createQueueDto: CreateQueueDto) {
-    return this.runInTransaction(async (manager) => {
+    const { response, item, settings } = await this.runInTransaction(async (manager) => {
       const queueRepo = manager.getRepository(QueueEntity);
       const today = this.todayDateString();
       const queueDate = this.normalizeDate(createQueueDto.queueDate ?? today);
@@ -346,13 +378,23 @@ export class QueueService {
 
       this.logger.log(`Turno creado para negocio ${businessId}: ${saved.id}`);
 
+      const item = this.toQueueItem(refreshed ?? saved);
+
       return {
-        success: true,
-        message: 'Cliente agregado a la cola',
-        data: this.toQueueItem(refreshed ?? saved),
-        totalInQueue,
+        item,
+        settings,
+        response: {
+          success: true,
+          message: 'Cliente agregado a la cola',
+          data: item,
+          totalInQueue,
+        },
       };
     });
+
+    void this.notifyQueueConfirmation(item, settings);
+
+    return response;
   }
 
   async updateQueueItem(businessId: string, id: string, updateQueueDto: UpdateQueueDto) {
