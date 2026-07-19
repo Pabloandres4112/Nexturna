@@ -4,12 +4,8 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
   Index,
 } from 'typeorm';
-import { UserEntity } from '@identity/users/user.entity';
-import { QueueEntity } from '@scheduling/queue/queue.entity';
 
 export enum MessageDirection {
   SENT = 'SENT',
@@ -83,23 +79,18 @@ export class MessageLogEntity {
   whatsappMessageId?: string | null;
 
   /**
-   * Referencia al usuario/negocio propietario.
+   * Referencia al usuario/negocio propietario. Sin @ManyToOne/@JoinColumn:
+   * la FK se enforcea en Postgres directo sobre esta columna (ver migracion),
+   * nada en el codigo navega .user.
    */
-  @ManyToOne(() => UserEntity)
-  @JoinColumn({ name: 'user_id' })
-  user?: UserEntity;
-
   @Column({ type: 'uuid', nullable: true })
   userId?: string | null;
 
   /**
-   * Referencia al turno (si aplica).
-   * Puede ser null si el mensaje no está asociado a un turno.
+   * Referencia al turno (si aplica). Puede ser null si el mensaje no esta
+   * asociado a un turno. Misma razon que userId: sin relacion de TypeORM,
+   * FK real en Postgres sobre esta columna.
    */
-  @ManyToOne(() => QueueEntity, { nullable: true })
-  @JoinColumn({ name: 'queue_id' })
-  queue?: QueueEntity | null;
-
   @Column({ type: 'uuid', nullable: true })
   queueId?: string | null;
 
