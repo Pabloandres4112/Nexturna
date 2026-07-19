@@ -7,9 +7,7 @@ import {
   Put,
   Body,
   Query,
-  UnauthorizedException,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { MessageLogService } from './message-log.service';
 import {
@@ -21,19 +19,12 @@ import {
 import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
 import { RolesGuard } from '@shared/guards/roles.guard';
 import { Roles } from '@shared/decorators/roles.decorator';
+import { CurrentBusinessId } from '@shared/decorators/current-business-id.decorator';
 import { UserRole } from '@identity/users/user-role.enum';
 
 @Controller('message-logs')
 export class MessageLogController {
   constructor(private readonly messageLogService: MessageLogService) {}
-
-  private getBusinessId(req: any): string {
-    const businessId = req.user?.businessId ?? req.user?.id;
-    if (!businessId) {
-      throw new UnauthorizedException('No se pudo identificar el negocio en el token');
-    }
-    return businessId;
-  }
 
   /**
    * GET /message-logs?phoneNumber=...&status=...&limit=50
@@ -43,10 +34,9 @@ export class MessageLogController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.BUSINESS_STAFF, UserRole.PLATFORM_ADMIN)
   async getLogs(
-    @Request() req: any,
+    @CurrentBusinessId() businessId: string,
     @Query() query: GetMessageLogsQueryDto,
   ): Promise<{ logs: MessageLogResponseDto[]; total: number }> {
-    const businessId = this.getBusinessId(req);
     return this.messageLogService.getLogsForBusiness(businessId, query);
   }
 
@@ -58,10 +48,9 @@ export class MessageLogController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BUSINESS_OWNER, UserRole.BUSINESS_STAFF)
   async getLogsForPhone(
-    @Request() req: any,
+    @CurrentBusinessId() businessId: string,
     @Param('phoneNumber') phoneNumber: string,
   ): Promise<MessageLogResponseDto[]> {
-    const businessId = this.getBusinessId(req);
     return this.messageLogService.getLogsForPhoneNumber(businessId, phoneNumber);
   }
 
@@ -99,17 +88,12 @@ export class MessageLogController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BUSINESS_OWNER, UserRole.BUSINESS_STAFF)
   async createLog(
-    @Request() req: any,
+    @CurrentBusinessId() businessId: string,
     @Body() dto: CreateMessageLogDto,
   ): Promise<MessageLogResponseDto> {
-    const businessId = this.getBusinessId(req);
-    const userId = req.user?.id;
-
-    if (!userId) {
-      throw new UnauthorizedException('No se pudo identificar el usuario en el token');
-    }
-
-    return this.messageLogService.createLog(businessId, userId, dto);
+    // Hoy un negocio equivale a un unico UserEntity (sin distincion owner/staff),
+    // por eso userId y businessId comparten el mismo valor del token.
+    return this.messageLogService.createLog(businessId, businessId, dto);
   }
 
   /**
@@ -133,8 +117,7 @@ export class MessageLogController {
   @Get('health/failed-count')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BUSINESS_OWNER)
-  async getFailedCount(@Request() req: any): Promise<{ failedCount: number }> {
-    const businessId = this.getBusinessId(req);
+  async getFailedCount(@CurrentBusinessId() businessId: string): Promise<{ failedCount: number }> {
     const failedCount = await this.messageLogService.countFailedMessages(businessId);
     return { failedCount };
   }

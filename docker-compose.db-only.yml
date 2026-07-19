@@ -22,7 +22,7 @@ services:
 
   # pgAdmin para administrar la base de datos
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:8.12
     container_name: turnoya-pgadmin-dev
     ports:
       - "5050:80"

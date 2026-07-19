@@ -30,8 +30,7 @@ export class RolesGuard implements CanActivate {
       typeof request.user?.role === 'string' ? request.user.role.toLowerCase() : request.user?.role;
 
     return (
-      !!userRole &&
-      requiredRoles.map((role) => role.toLowerCase()).includes(userRole.toLowerCase())
+      !!userRole && requiredRoles.map((role) => role.toLowerCase()).includes(userRole.toLowerCase())
     );
   }
 }

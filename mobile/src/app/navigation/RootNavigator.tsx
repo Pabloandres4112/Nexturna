@@ -6,6 +6,7 @@ import { useAuth, AuthNavigator } from '@features/auth';
 import { HomeScreen } from '@features/home';
 import { QueueScreen, AddClientScreen, ClientDetailScreen } from '@features/queue';
 import { SettingsScreen } from '@features/settings';
+import { WhatsAppTestScreen } from '@features/whatsapp';
 import { LoadingSpinner } from '@ui-kit';
 import { COLORS } from '@shared/constants';
 
@@ -51,6 +52,11 @@ const AppNavigator: React.FC = () => (
       component={ClientDetailScreen}
       options={{ title: 'Detalle del Turno' }}
     />
+    <AppStack.Screen
+      name="WhatsAppTest"
+      component={WhatsAppTestScreen}
+      options={{ title: 'Probar WhatsApp' }}
+    />
   </AppStack.Navigator>
 );
 
@@ -58,7 +64,7 @@ const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <LoadingSpinner fullscreen message="Iniciando TurnoYa..." />;
+    return <LoadingSpinner fullscreen message="Iniciando Nexturna..." />;
   }
 
   return (

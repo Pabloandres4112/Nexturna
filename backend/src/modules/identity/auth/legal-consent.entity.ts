@@ -1,17 +1,13 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { UserEntity } from '../users/user.entity';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * Evidencia legal de aceptación de términos y política de privacidad.
  * Se guarda por cada registro para auditoría y soporte ante reclamos.
+ *
+ * userId no tiene @ManyToOne/@JoinColumn: la relacion con UserEntity se
+ * enforcea directo en Postgres via FK (ver migracion), sin que TypeORM
+ * necesite modelarla — nada en el codigo navega .user, solo se filtra por
+ * userId. Evita la trampa de tener dos columnas para el mismo dato.
  */
 @Entity('legal_consents')
 @Index(['userId', 'acceptedAt'])
@@ -21,10 +17,6 @@ export class LegalConsentEntity {
 
   @Column({ type: 'uuid' })
   userId!: string;
-
-  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user?: UserEntity;
 
   @Column({ type: 'boolean', default: true })
   acceptedTerms!: boolean;

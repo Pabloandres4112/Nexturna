@@ -1,10 +1,14 @@
 {
-  "name": "turnoya-backend",
+  "name": "nexturna-backend",
   "version": "1.0.0",
-  "description": "Backend para TurnoYa - Sistema de gestión de turnos por WhatsApp",
+  "description": "Backend para Nexturna - Sistema de gestión de turnos por WhatsApp",
   "author": "Tu Nombre",
   "private": true,
   "license": "MIT",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -26,17 +30,17 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
-    "@nestjs/swagger": "^7.1.17",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^10.0.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "joi": "^18.2.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.17"
   },
   "devDependencies": {

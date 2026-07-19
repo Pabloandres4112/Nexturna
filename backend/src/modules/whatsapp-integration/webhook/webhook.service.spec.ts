@@ -4,12 +4,14 @@ import { WebhookService } from './webhook.service';
 import { ConfigService } from '@nestjs/config';
 import { MessageLogService } from '../message-log/message-log.service';
 import { MessageDirection, MessageType, MessageStatus } from '../message-log/message-log.entity';
+import { MetaConnectionService } from '../connection/meta-connection.service';
 import * as crypto from 'crypto';
 
 describe('WebhookService (Tarea 13)', () => {
   let service: WebhookService;
   let mockConfigService: any;
   let mockMessageLogService: any;
+  let mockMetaConnectionService: any;
 
   const APP_SECRET = 'test-app-secret';
 
@@ -26,11 +28,16 @@ describe('WebhookService (Tarea 13)', () => {
       updateLog: jest.fn().mockResolvedValue({ id: 'log-123' }),
     };
 
+    mockMetaConnectionService = {
+      findBusinessIdByPhoneNumberId: jest.fn().mockResolvedValue('biz-123'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhookService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: MessageLogService, useValue: mockMessageLogService },
+        { provide: MetaConnectionService, useValue: mockMetaConnectionService },
       ],
     }).compile();
 
@@ -214,13 +221,7 @@ describe('WebhookService (Tarea 13)', () => {
         .digest('hex');
       const xHubSignature = `sha256=${hmac}`;
 
-      const result = await service.processWebhook(
-        'biz-123',
-        'user-123',
-        bodyString,
-        xHubSignature,
-        bodyJson,
-      );
+      const result = await service.processWebhook(bodyString, xHubSignature, bodyJson);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('correctamente');
@@ -232,7 +233,7 @@ describe('WebhookService (Tarea 13)', () => {
       const xHubSignature = 'sha256=invalid_signature';
 
       await expect(
-        service.processWebhook('biz-123', 'user-123', bodyString, xHubSignature, bodyJson),
+        service.processWebhook(bodyString, xHubSignature, bodyJson),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -242,8 +243,86 @@ describe('WebhookService (Tarea 13)', () => {
       const xHubSignature = '';
 
       await expect(
-        service.processWebhook('biz-123', 'user-123', bodyString, xHubSignature, bodyJson),
+        service.processWebhook(bodyString, xHubSignature, bodyJson),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('Debe resolver el negocio real por phone_number_id y despachar el evento', async () => {
+      const bodyJson = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'waba-1',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  messaging_product: 'whatsapp',
+                  metadata: { phone_number_id: '1201624886366485' },
+                  messages: [
+                    {
+                      from: '+573105555555',
+                      id: 'msg-123',
+                      timestamp: '1234567890',
+                      text: { body: 'Hola' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const bodyString = JSON.stringify(bodyJson);
+      const hmac = crypto
+        .createHmac('sha256', APP_SECRET)
+        .update(bodyString, 'utf-8')
+        .digest('hex');
+      const xHubSignature = `sha256=${hmac}`;
+
+      await service.processWebhook(bodyString, xHubSignature, bodyJson);
+
+      expect(mockMetaConnectionService.findBusinessIdByPhoneNumberId).toHaveBeenCalledWith(
+        '1201624886366485',
+      );
+      expect(mockMessageLogService.createLog).toHaveBeenCalledWith(
+        'biz-123',
+        'biz-123',
+        expect.objectContaining({ phoneNumber: '+573105555555' }),
+      );
+    });
+
+    it('Debe ignorar (sin fallar) un webhook de un phone_number_id sin negocio conectado', async () => {
+      mockMetaConnectionService.findBusinessIdByPhoneNumberId.mockResolvedValueOnce(null);
+
+      const bodyJson = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'waba-desconocida',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  metadata: { phone_number_id: 'numero-no-conectado' },
+                  messages: [],
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const bodyString = JSON.stringify(bodyJson);
+      const hmac = crypto
+        .createHmac('sha256', APP_SECRET)
+        .update(bodyString, 'utf-8')
+        .digest('hex');
+      const xHubSignature = `sha256=${hmac}`;
+
+      const result = await service.processWebhook(bodyString, xHubSignature, bodyJson);
+
+      expect(result.success).toBe(true);
+      expect(mockMessageLogService.createLog).not.toHaveBeenCalled();
     });
   });
 });

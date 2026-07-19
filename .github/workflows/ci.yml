@@ -22,21 +22,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # El backend usa pnpm (ver backend/pnpm-lock.yaml y packageManager en
+      # package.json). Tiene que instalarse ANTES de actions/setup-node para
+      # que su cache: 'pnpm' pueda encontrar el store de pnpm.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          node-version: '22.12.0'
+          cache: 'pnpm'
+          cache-dependency-path: backend/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: npx eslint "{src,apps,libs,test}/**/*.ts" --fix --max-warnings 0
+        run: pnpm exec eslint "{src,apps,libs,test}/**/*.ts" --fix --max-warnings 0
 
       - name: Run unit tests with coverage
-        run: npm run test:cov
+        run: pnpm run test:cov
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -59,7 +67,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 

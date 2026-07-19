@@ -8,96 +8,87 @@ import {
   ParseUUIDPipe,
   Param,
   UseGuards,
-  Req,
-  UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { QueueService } from './queue.service';
-import { CreateQueueDto, UpdateQueueDto } from './queue.dto';
+import { CreateQueueDto, GetQueueResponse, UpdateQueueDto } from './queue.dto';
 import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
-import { UserEntity } from '@identity/users/user.entity';
-
-interface AuthRequest extends Request {
-  user: UserEntity;
-}
+import { CurrentBusinessId } from '@shared/decorators/current-business-id.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('queue')
 export class QueueController {
   constructor(private readonly queueService: QueueService) {}
 
-  private getBusinessId(req: AuthRequest): string {
-    const businessId = req.user?.id;
-    if (!businessId) {
-      throw new UnauthorizedException('Usuario no autenticado');
-    }
-    return businessId;
-  }
-
   @Get()
-  async getQueue(@Req() req: AuthRequest): Promise<any> {
-    return this.queueService.getQueue(this.getBusinessId(req));
+  async getQueue(@CurrentBusinessId() businessId: string): Promise<GetQueueResponse> {
+    return this.queueService.getQueue(businessId);
   }
 
   @Get(':date')
-  async getQueueByDate(@Req() req: AuthRequest, @Param('date') date: string): Promise<any> {
+  async getQueueByDate(
+    @CurrentBusinessId() businessId: string,
+    @Param('date') date: string,
+  ): Promise<GetQueueResponse> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException('Fecha inválida. Usa formato YYYY-MM-DD');
     }
-    return this.queueService.getQueueByDate(this.getBusinessId(req), date);
+    return this.queueService.getQueueByDate(businessId, date);
   }
 
   @Post()
-  async addToQueue(@Req() req: AuthRequest, @Body() createQueueDto: CreateQueueDto): Promise<any> {
-    return this.queueService.addToQueue(this.getBusinessId(req), createQueueDto);
+  async addToQueue(
+    @CurrentBusinessId() businessId: string,
+    @Body() createQueueDto: CreateQueueDto,
+  ) {
+    return this.queueService.addToQueue(businessId, createQueueDto);
   }
 
   @Put(':id')
   async updateQueueItem(
-    @Req() req: AuthRequest,
+    @CurrentBusinessId() businessId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateQueueDto: UpdateQueueDto,
   ) {
-    return this.queueService.updateQueueItem(this.getBusinessId(req), id, updateQueueDto);
+    return this.queueService.updateQueueItem(businessId, id, updateQueueDto);
   }
 
   @Delete(':id')
   async removeFromQueue(
-    @Req() req: AuthRequest,
+    @CurrentBusinessId() businessId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
-    return this.queueService.removeFromQueue(this.getBusinessId(req), id);
+    return this.queueService.removeFromQueue(businessId, id);
   }
 
   @Post('next')
-  async nextInQueue(@Req() req: AuthRequest) {
-    return this.queueService.nextInQueue(this.getBusinessId(req));
+  async nextInQueue(@CurrentBusinessId() businessId: string) {
+    return this.queueService.nextInQueue(businessId);
   }
 
   @Post('complete/:id')
   async completeQueueItem(
-    @Req() req: AuthRequest,
+    @CurrentBusinessId() businessId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
-    return this.queueService.completeQueueItem(this.getBusinessId(req), id);
+    return this.queueService.completeQueueItem(businessId, id);
   }
 
   @Post('skip/:id')
   async skipQueueItem(
-    @Req() req: AuthRequest,
+    @CurrentBusinessId() businessId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
-    return this.queueService.skipQueueItem(this.getBusinessId(req), id);
+    return this.queueService.skipQueueItem(businessId, id);
   }
 
   @Post('pause')
-  async pauseQueue(@Req() req: AuthRequest) {
-    return this.queueService.pauseQueue(this.getBusinessId(req));
+  async pauseQueue(@CurrentBusinessId() businessId: string) {
+    return this.queueService.pauseQueue(businessId);
   }
 
   @Post('resume')
-  async resumeQueue(@Req() req: AuthRequest) {
-    return this.queueService.resumeQueue(this.getBusinessId(req));
+  async resumeQueue(@CurrentBusinessId() businessId: string) {
+    return this.queueService.resumeQueue(businessId);
   }
 }

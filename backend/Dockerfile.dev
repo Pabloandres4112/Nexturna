@@ -1,8 +1,12 @@
-# Dockerfile para desarrollo con hot reload
-FROM node:18-alpine
+# Dockerfile para desarrollo con hot reload.
+# Mismas versiones fijas de Node/pnpm que Dockerfile (produccion) a proposito:
+# el objetivo es que "funciona en mi contenedor de dev" siga siendo cierto en prod.
+FROM node:22.12.0-alpine3.21
 
-# Instala pnpm globalmente
-RUN npm install -g pnpm
+# Herramientas de compilacion nativa (bcrypt compila un addon nativo en install).
+RUN apk add --no-cache python3 make g++
+
+RUN npm install -g pnpm@10.28.0
 
 WORKDIR /app
 

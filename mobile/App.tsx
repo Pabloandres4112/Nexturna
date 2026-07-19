@@ -1,5 +1,5 @@
 /**
- * TurnoYa - Sistema de Gestión de Turnos
+ * Nexturna - Sistema de Gestión de Turnos
  * Frontend React Native con TypeScript
  */
 

@@ -10,13 +10,19 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '@app/navigation/types';
 import { useAuth } from '@features/auth';
 import { useSettings } from '../hooks/useSettings';
 import { Input, Button, Card, LoadingSpinner } from '@ui-kit';
 import { COLORS, SPACING, TYPOGRAPHY } from '@shared/constants';
 import { validatePositiveNumber } from '@shared/utils/validators';
 
+type SettingsNavProp = NativeStackNavigationProp<AppStackParamList, 'Settings'>;
+
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<SettingsNavProp>();
   const { user, logout } = useAuth();
   const { settings, loading, saving, updateSettings } = useSettings();
 
@@ -150,6 +156,16 @@ const SettingsScreen: React.FC = () => {
             </View>
           </Card>
 
+          {/* Tools */}
+          <Text style={styles.sectionLabel}>Herramientas</Text>
+          <Card style={styles.card}>
+            <Button
+              title="Probar envío de WhatsApp"
+              variant="outline"
+              onPress={() => navigation.navigate('WhatsAppTest')}
+            />
+          </Card>
+
           {/* Save */}
           <Button
             title={saving ? 'Guardando...' : 'Guardar cambios'}
@@ -168,8 +184,8 @@ const SettingsScreen: React.FC = () => {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.version}>TurnoYa v1.0.0</Text>
-            <Text style={styles.copyright}>2026 TurnoYa</Text>
+            <Text style={styles.version}>Nexturna v1.0.0</Text>
+            <Text style={styles.copyright}>2026 Nexturna</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

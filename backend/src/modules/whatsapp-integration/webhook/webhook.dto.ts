@@ -43,10 +43,30 @@ class WebhookStatus {
   recipient_id!: string;
 }
 
+/**
+ * Identifica a que numero (y por lo tanto a que negocio, via
+ * MetaConnectionService) pertenece este evento. Sin esto declarado el
+ * ValidationPipe global (forbidNonWhitelisted) rechaza el payload real de
+ * Meta, que siempre incluye este campo.
+ */
+class WebhookMetadata {
+  @IsString()
+  @IsOptional()
+  display_phone_number?: string;
+
+  @IsString()
+  phone_number_id!: string;
+}
+
 class WebhookValue {
   @IsString()
   @IsOptional()
   messaging_product?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WebhookMetadata)
+  metadata?: WebhookMetadata;
 
   @IsArray()
   @IsOptional()
