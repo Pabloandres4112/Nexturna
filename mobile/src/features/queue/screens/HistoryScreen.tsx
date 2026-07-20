@@ -7,7 +7,12 @@ import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from '@shared/constants';
 
 const STATUS_LABELS: Record<string, string> = {
   completed: 'Completado',
-  noShow: 'No asistio',
+  noShow: 'No asistió',
+};
+
+const RESOLVED_AT_LABELS: Record<string, string> = {
+  completed: 'Atendido',
+  noShow: 'Cerrado',
 };
 
 const formatTime = (isoDate: string): string => {
@@ -20,8 +25,9 @@ const formatTime = (isoDate: string): string => {
 
 const HistoryScreen: React.FC = () => {
   const { items, completedCount, noShowCount, loading, error, refresh } = useQueueHistory();
+  const isInitialLoading = loading && items.length === 0;
 
-  if (loading) {
+  if (isInitialLoading) {
     return <LoadingSpinner fullscreen message="Cargando historial..." />;
   }
 
@@ -36,7 +42,9 @@ const HistoryScreen: React.FC = () => {
         <Badge label={STATUS_LABELS[item.status] ?? item.status} variant={item.status} />
       </View>
       <Text style={styles.phone}>{item.phoneNumber}</Text>
-      <Text style={styles.time}>Atendido: {formatTime(item.updatedAt)}</Text>
+      <Text style={styles.time}>
+        {RESOLVED_AT_LABELS[item.status] ?? 'Actualizado'}: {formatTime(item.updatedAt)}
+      </Text>
     </View>
   );
 
@@ -62,7 +70,7 @@ const HistoryScreen: React.FC = () => {
         ListEmptyComponent={
           <EmptyState
             title="Sin historial hoy"
-            subtitle="Todavia no hay turnos completados o no asistidos para el dia de hoy."
+            subtitle="Todavía no hay turnos completados o no asistidos para el día de hoy."
           />
         }
       />

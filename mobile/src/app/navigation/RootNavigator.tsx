@@ -55,7 +55,7 @@ const AppNavigator: React.FC = () => (
     <AppStack.Screen
       name="History"
       component={HistoryScreen}
-      options={{ title: 'Historial del dia' }}
+      options={{ title: 'Historial del día' }}
     />
     <AppStack.Screen
       name="WhatsAppTest"
