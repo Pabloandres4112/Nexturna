@@ -58,6 +58,15 @@ jest.mock('@features/queue', () => ({
     completeItem: jest.fn(),
     removeItem: jest.fn(),
   })),
+  useQueueHistory: jest.fn(() => ({
+    items: [],
+    total: 6,
+    completedCount: 5,
+    noShowCount: 1,
+    loading: false,
+    error: null,
+    refresh: jest.fn(),
+  })),
 }));
 
 jest.mock('@features/settings', () => ({

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { QueueController } from './queue.controller';
 import { QueueService } from './queue.service';
 import { CreateQueueDto, UpdateQueueDto, QueueStatus } from './queue.dto';
@@ -29,9 +30,19 @@ describe('QueueController', () => {
     message: 'OK',
   };
 
+  const mockQueueHistoryResult = {
+    items: [],
+    total: 0,
+    completedCount: 0,
+    noShowCount: 0,
+    date: '2026-04-18',
+    message: 'OK',
+  };
+
   const mockService = {
     getQueue: jest.fn().mockResolvedValue(mockQueueResult),
     getQueueByDate: jest.fn().mockResolvedValue(mockQueueResult),
+    getQueueHistory: jest.fn().mockResolvedValue(mockQueueHistoryResult),
     addToQueue: jest.fn().mockResolvedValue({ success: true, data: {}, totalInQueue: 1 }),
     updateQueueItem: jest.fn().mockResolvedValue({ success: true, message: 'Updated' }),
     removeFromQueue: jest.fn().mockResolvedValue({ success: true, message: 'Removed' }),
@@ -78,6 +89,28 @@ describe('QueueController', () => {
 
       expect(service.getQueueByDate).toHaveBeenCalledWith(BUSINESS_ID, '2026-04-18');
       expect(result).toEqual(mockQueueResult);
+    });
+  });
+
+  describe('getQueueHistory', () => {
+    it('should call service.getQueueHistory with businessId and no date by default', async () => {
+      const result = await controller.getQueueHistory(BUSINESS_ID);
+
+      expect(service.getQueueHistory).toHaveBeenCalledWith(BUSINESS_ID, undefined);
+      expect(result).toEqual(mockQueueHistoryResult);
+    });
+
+    it('should call service.getQueueHistory with the given date', async () => {
+      await controller.getQueueHistory(BUSINESS_ID, '2026-04-18');
+
+      expect(service.getQueueHistory).toHaveBeenCalledWith(BUSINESS_ID, '2026-04-18');
+    });
+
+    it('should reject an invalid date without calling the service', async () => {
+      await expect(controller.getQueueHistory(BUSINESS_ID, 'not-a-date')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(service.getQueueHistory).not.toHaveBeenCalled();
     });
   });
 

@@ -10,8 +10,8 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { QueueEntity, QueueStatus } from './queue.entity';
 import { UserEntity } from '@identity/users/user.entity';
 import { normalizeUserSettings } from '@identity/users/user-settings.util';
+import { CreateQueueDto, GetQueueHistoryResponse, QueueItem, UpdateQueueDto } from './queue.dto';
 import { WhatsAppService } from '@whatsapp/messaging/whatsapp.service';
-import { CreateQueueDto, QueueItem, UpdateQueueDto } from './queue.dto';
 
 @Injectable()
 export class QueueService {
@@ -37,6 +37,7 @@ export class QueueService {
       estimatedTimeMinutes: entity.estimatedTimeMinutes ?? 0,
       priority: entity.priority,
       createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       queueDate: entity.queueDate,
     };
   }
@@ -59,6 +60,10 @@ export class QueueService {
 
   private activeStatuses(): QueueStatus[] {
     return [QueueStatus.WAITING, QueueStatus.IN_PROGRESS];
+  }
+
+  private historyStatuses(): QueueStatus[] {
+    return [QueueStatus.COMPLETED, QueueStatus.NO_SHOW];
   }
 
   private async loadBusinessAndSettings(
@@ -212,6 +217,35 @@ export class QueueService {
       total: items.length,
       currentPosition: currentItem?.position ?? 0,
       message: 'Cola obtenida correctamente',
+    };
+  }
+
+  /**
+   * Historial de turnos ya resueltos (completados o no-show) para un dia.
+   * Separado de getQueueByDate a proposito: esa consulta es la cola operativa
+   * (solo activos) y no debe mezclarse con turnos que ya se cerraron.
+   */
+  async getQueueHistory(businessId: string, date?: string): Promise<GetQueueHistoryResponse> {
+    const queueDate = this.normalizeDate(date ?? this.todayDateString());
+
+    const items = await this.queueRepo
+      .createQueryBuilder('q')
+      .where('q.businessId = :businessId', { businessId })
+      .andWhere('q.queueDate = :queueDate::date', { queueDate })
+      .andWhere('q.status IN (:...statuses)', { statuses: this.historyStatuses() })
+      .orderBy('q.updatedAt', 'DESC')
+      .getMany();
+
+    const completedCount = items.filter((item) => item.status === QueueStatus.COMPLETED).length;
+    const noShowCount = items.filter((item) => item.status === QueueStatus.NO_SHOW).length;
+
+    return {
+      items: items.map((item) => this.toQueueItem(item)),
+      total: items.length,
+      completedCount,
+      noShowCount,
+      date: queueDate,
+      message: 'Historial obtenido correctamente',
     };
   }
 

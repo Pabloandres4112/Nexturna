@@ -9,6 +9,7 @@ export type AppStackParamList = {
   AddClient: undefined;
   Settings: undefined;
   ClientDetail: { item: QueueItem };
+  History: undefined;
   WhatsAppTest: undefined;
 };
 
